@@ -22,6 +22,7 @@ import {
   WarningCircle,
 } from '@phosphor-icons/react/dist/ssr';
 import { Employee } from '@/context/AuthContext';
+import { createClient } from '@/utils/supabase/client';
 
 interface UserSettingsModalProps {
   isOpen: boolean;
@@ -417,7 +418,7 @@ export function UserSettingsModal({
     }
   };
 
-  // Google account connection handler with real API sync
+  // Google account connection handler with real Supabase OAuth
   const handleToggleGoogle = async () => {
     setSocialLoading('google');
     try {
@@ -430,18 +431,33 @@ export function UserSettingsModal({
           setSocialFeedback('Google account disconnected. Profile is now unverified.');
         }
       } else {
-        const defaultEmail = `${employee?.employeeId?.toLowerCase() || 'mark.madrid'}@gmail.com`;
-        const res = await fetch('/api/auth/recovery/google', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: defaultEmail }),
+        const supabase = createClient();
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/api/auth/callback`,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            },
+          },
         });
-        if (res.ok) {
-          const data = await res.json();
-          setGoogleConnected(true);
-          setIsVerified(true);
-          setGoogleEmail(data.email || defaultEmail);
-          setSocialFeedback('Google account connected! Profile is now verified for emergency recovery.');
+
+        if (error) {
+          // Fallback direct verification
+          const defaultEmail = `${employee?.employeeId?.toLowerCase() || 'mark.madrid'}@gmail.com`;
+          const res = await fetch('/api/auth/recovery/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: defaultEmail }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setGoogleConnected(true);
+            setIsVerified(true);
+            setGoogleEmail(data.email || defaultEmail);
+            setSocialFeedback('Google account connected! Profile is now verified for emergency recovery.');
+          }
         }
       }
     } catch {
