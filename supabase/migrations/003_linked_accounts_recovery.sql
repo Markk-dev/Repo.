@@ -3,7 +3,11 @@
 -- Multi-Factor / Recovery Linked Accounts & Verification Status Schema
 -- ==============================================================================
 
--- 1. Create linked_accounts table with Foreign Key referencing employees(id)
+-- 1. Add nickname column to employees table
+ALTER TABLE public.employees
+  ADD COLUMN IF NOT EXISTS nickname TEXT DEFAULT 'Mark';
+
+-- 2. Create linked_accounts table with Foreign Key referencing employees(id)
 CREATE TABLE IF NOT EXISTS public.linked_accounts (
   id                  UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   employee_id         UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
