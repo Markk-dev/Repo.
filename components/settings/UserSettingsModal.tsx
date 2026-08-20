@@ -156,6 +156,7 @@ export function UserSettingsModal({
   const [activeSection, setActiveSection] = useState<SectionKey>('account-info');
   const [emailRevealed, setEmailRevealed] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [nickname, setNickname] = useState('Mark');
 
   // Change Password Sub-Modal State
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -667,6 +668,17 @@ export function UserSettingsModal({
                     <SwipeableSettingsRow
                       label="Full Name"
                       value={employee?.name || 'Mark Vincent Madrid'}
+                      actionButton={
+                        <button type="button" className="settings-action-btn">
+                          Edit
+                        </button>
+                      }
+                    />
+
+                    {/* Nickname */}
+                    <SwipeableSettingsRow
+                      label="Nickname"
+                      value={nickname}
                       actionButton={
                         <button type="button" className="settings-action-btn">
                           Edit
