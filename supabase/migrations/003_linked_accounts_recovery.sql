@@ -34,19 +34,16 @@ ALTER TABLE public.linked_accounts ENABLE ROW LEVEL SECURITY;
 
 -- 6. Access Policies
 DROP POLICY IF EXISTS "Employees can view own linked accounts" ON public.linked_accounts;
+DROP POLICY IF EXISTS "Allow all on linked_accounts" ON public.linked_accounts;
 
-CREATE POLICY "Employees can view own linked accounts"
+CREATE POLICY "Allow all on linked_accounts"
   ON public.linked_accounts
-  FOR SELECT
-  TO authenticated
-  USING (
-    employee_id IN (
-      SELECT id FROM public.employees
-    )
-  );
+  FOR ALL
+  TO authenticated, anon, service_role
+  USING (true)
+  WITH CHECK (true);
 
--- Service role full management
-GRANT ALL ON public.linked_accounts TO service_role;
+GRANT ALL ON public.linked_accounts TO postgres, anon, authenticated, service_role;
 
 -- 6. Helper Function: Check if an employee is verified via Google
 CREATE OR REPLACE FUNCTION public.is_employee_verified(p_employee_id UUID)
