@@ -1818,7 +1818,7 @@ textarea {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 186, 88, 0.18);
+  box-shadow: none;
   overflow: hidden;
 }
 
@@ -1853,11 +1853,17 @@ textarea {
   width: 100%;
   height: 34px;
   background-color: #ede7df;
-  border: 1px solid var(--color-border-default);
+  border: 1px solid #d4c8bb;
   border-radius: var(--radius-sm);
   padding: 0 10px;
   color: #716761;
   box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.settings-search-box:focus-within {
+  border-color: #baa798;
+  box-shadow: 0 0 0 1px #baa798;
 }
 
 .settings-search-box input {
