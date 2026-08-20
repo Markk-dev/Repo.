@@ -18,8 +18,6 @@ import {
   UploadSimple,
   Trash,
   ShieldCheck,
-  Key,
-  QrCode,
   Info,
   WarningCircle,
 } from '@phosphor-icons/react/dist/ssr';
@@ -177,9 +175,8 @@ export function UserSettingsModal({
   const [totalDevicesCount, setTotalDevicesCount] = useState(1);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
-  // Social Account Linking State (for recovery & MFA)
+  // Google Account Linking State (for recovery & MFA)
   const [googleConnected, setGoogleConnected] = useState(false);
-  const [facebookConnected, setFacebookConnected] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [socialFeedback, setSocialFeedback] = useState<string | null>(null);
 
@@ -402,7 +399,7 @@ export function UserSettingsModal({
     }
   };
 
-  // Social account connection handlers
+  // Google account connection handler
   const handleToggleGoogle = () => {
     setSocialLoading('google');
     setTimeout(() => {
@@ -412,23 +409,6 @@ export function UserSettingsModal({
           next
             ? 'Google account connected successfully for retrieval!'
             : 'Google account disconnected.'
-        );
-        setTimeout(() => setSocialFeedback(null), 3000);
-        return next;
-      });
-      setSocialLoading(null);
-    }, 400);
-  };
-
-  const handleToggleFacebook = () => {
-    setSocialLoading('facebook');
-    setTimeout(() => {
-      setFacebookConnected((prev) => {
-        const next = !prev;
-        setSocialFeedback(
-          next
-            ? 'Facebook account connected successfully for retrieval!'
-            : 'Facebook account disconnected.'
         );
         setTimeout(() => setSocialFeedback(null), 3000);
         return next;
@@ -729,8 +709,8 @@ export function UserSettingsModal({
                       label="Multi-Factor Authentication"
                       value={
                         <span className="settings-row-subtext">
-                          {googleConnected || facebookConnected
-                            ? 'Social recovery linked'
+                          {googleConnected
+                            ? 'Google recovery linked'
                             : 'Extra layer of security.'}
                         </span>
                       }
@@ -868,7 +848,7 @@ export function UserSettingsModal({
               </div>
             </div>
           ) : (
-            /* Discord-Style MFA & Connected Social Accounts View */
+            /* Discord-Style MFA & Connected Google Account View */
             <div className="discord-mfa-view">
               {/* Header with Breadcrumb Back Navigation */}
               <header className="discord-devices-header">
@@ -897,7 +877,7 @@ export function UserSettingsModal({
                 <div className="discord-devices-intro">
                   <h1 className="discord-devices-title">Multi-Factor Authentication</h1>
                   <p className="discord-devices-subtitle">
-                    Add extra layers of protection to your account and link external accounts for emergency retrieval.
+                    Connect your Google account for emergency identity verification and account retrieval.
                   </p>
                 </div>
 
@@ -908,9 +888,9 @@ export function UserSettingsModal({
                   </div>
                 )}
 
-                {/* Section 1: Connected Accounts (For Account Retrieval) */}
+                {/* Connected Google Account (For Account Retrieval) */}
                 <section className="discord-device-section">
-                  <h3 className="discord-device-section-title">Connected Accounts (For Account Retrieval)</h3>
+                  <h3 className="discord-device-section-title">Connected Google Account</h3>
                   <div className="mfa-provider-list">
                     {/* Google */}
                     <div className="mfa-provider-card">
@@ -932,7 +912,7 @@ export function UserSettingsModal({
                         <span className="mfa-provider-desc">
                           {googleConnected
                             ? `Linked for account recovery: ${employee?.employeeId?.toLowerCase() || 'user'}@gmail.com`
-                            : 'Link your Google account to quickly verify your identity or recover access.'}
+                            : 'Link your Google account to quickly verify your identity and recover access.'}
                         </span>
                       </div>
                       <button
@@ -948,89 +928,13 @@ export function UserSettingsModal({
                           : 'Connect with Google'}
                       </button>
                     </div>
-
-                    {/* Facebook */}
-                    <div className="mfa-provider-card">
-                      <div className="mfa-provider-icon-box">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="#1877F2">
-                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                        </svg>
-                      </div>
-                      <div className="mfa-provider-info">
-                        <div className="mfa-provider-header">
-                          <span className="mfa-provider-name">Facebook</span>
-                          <span className={`mfa-provider-status-badge ${facebookConnected ? 'connected' : 'disconnected'}`}>
-                            {facebookConnected ? 'Connected' : 'Not linked'}
-                          </span>
-                        </div>
-                        <span className="mfa-provider-desc">
-                          {facebookConnected
-                            ? `Linked profile: ${employee?.name || 'Mark Vincent Madrid'}`
-                            : 'Link your Facebook profile to enable secondary authentication and recovery.'}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        className={`mfa-connect-btn ${facebookConnected ? 'connected-btn' : ''}`}
-                        onClick={handleToggleFacebook}
-                        disabled={socialLoading === 'facebook'}
-                      >
-                        {socialLoading === 'facebook'
-                          ? 'Connecting...'
-                          : facebookConnected
-                          ? 'Disconnect'
-                          : 'Connect with Facebook'}
-                      </button>
-                    </div>
                   </div>
 
                   {/* Info Note Tip */}
                   <div className="mfa-info-tip-box">
                     <Info size={22} weight="duotone" className="mfa-info-tip-icon" />
                     <div>
-                      <strong>Note on Account Retrieval:</strong> Connecting Google or Facebook links your social identity as a trusted recovery method. If you forget your school password or credentials, you can verify via these linked accounts.
-                    </div>
-                  </div>
-                </section>
-
-                {/* Section 2: Two-Factor Authentication */}
-                <section className="discord-device-section">
-                  <h3 className="discord-device-section-title">Two-Factor Authentication</h3>
-                  <div className="mfa-provider-list">
-                    <div className="mfa-provider-card">
-                      <div className="mfa-provider-icon-box">
-                        <QrCode size={22} weight="duotone" style={{ color: '#5c524c' }} />
-                      </div>
-                      <div className="mfa-provider-info">
-                        <div className="mfa-provider-header">
-                          <span className="mfa-provider-name">Authenticator App (TOTP)</span>
-                          <span className="mfa-provider-status-badge disconnected">Disabled</span>
-                        </div>
-                        <span className="mfa-provider-desc">
-                          Use Google Authenticator, 1Password, or Authy to generate secure verification codes.
-                        </span>
-                      </div>
-                      <button type="button" className="mfa-connect-btn">
-                        Set up
-                      </button>
-                    </div>
-
-                    <div className="mfa-provider-card">
-                      <div className="mfa-provider-icon-box">
-                        <Key size={22} weight="duotone" style={{ color: '#5c524c' }} />
-                      </div>
-                      <div className="mfa-provider-info">
-                        <div className="mfa-provider-header">
-                          <span className="mfa-provider-name">Security Keys (Passkey / WebAuthn)</span>
-                          <span className="mfa-provider-status-badge disconnected">Disabled</span>
-                        </div>
-                        <span className="mfa-provider-desc">
-                          Sign in securely with hardware security keys, Windows Hello, or biometric Passkeys.
-                        </span>
-                      </div>
-                      <button type="button" className="mfa-connect-btn">
-                        Add Key
-                      </button>
+                      <strong>Note on Account Retrieval:</strong> Connecting your Google account links your Google email as a trusted recovery method. If you forget your school password or credentials, you can verify and recover your account via Google.
                     </div>
                   </div>
                 </section>
