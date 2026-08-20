@@ -29,11 +29,12 @@ CREATE INDEX IF NOT EXISTS idx_linked_accounts_employee_id
 CREATE INDEX IF NOT EXISTS idx_linked_accounts_email
   ON public.linked_accounts (email);
 
--- 4. Enable Row Level Security (RLS)
+-- 5. Enable Row Level Security (RLS)
 ALTER TABLE public.linked_accounts ENABLE ROW LEVEL SECURITY;
 
--- 5. Access Policies
--- Authenticated users can view their own linked accounts
+-- 6. Access Policies
+DROP POLICY IF EXISTS "Employees can view own linked accounts" ON public.linked_accounts;
+
 CREATE POLICY "Employees can view own linked accounts"
   ON public.linked_accounts
   FOR SELECT
