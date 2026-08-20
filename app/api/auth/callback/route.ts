@@ -57,11 +57,12 @@ export async function GET(request: NextRequest) {
 
   // Resolve current logged-in employee from session cookie
   const sessionKey = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  let employeeId: string | null = null;
+  let employeeUuid: string | null = null;
 
   if (sessionKey) {
     const admin = createAdminClient(cookieStore);
 
+    // 1. Try Supabase user_sessions lookup
     try {
       const { data: sessionData } = await admin
         .from("user_sessions")
@@ -74,34 +75,40 @@ export async function GET(request: NextRequest) {
         const emp = Array.isArray(sessionData.employees)
           ? sessionData.employees[0]
           : sessionData.employees;
-        employeeId = emp.id;
+        employeeUuid = emp.id;
       }
     } catch {
       // ignore
     }
 
-    if (!employeeId && sessionKey.startsWith("local_")) {
+    // 2. Fall back to local session cookie format -> resolve employee UUID from database
+    if (!employeeUuid && sessionKey.startsWith("local_")) {
       try {
         const parts = sessionKey.split("_");
         const empCode = Buffer.from(parts[1], "base64").toString("utf-8");
-        const emp = EMPLOYEES.find((e) => e.employeeId === empCode);
-        if (emp) {
-          employeeId = emp.employeeId;
+        const { data: empData } = await admin
+          .from("employees")
+          .select("id")
+          .eq("employee_id", empCode)
+          .maybeSingle();
+
+        if (empData) {
+          employeeUuid = empData.id;
         }
-      } catch {
-        // ignore
+      } catch (e) {
+        console.warn("[OAuth Callback] Error resolving employee UUID:", e);
       }
     }
   }
 
   // If an employee session exists, link the Google account in database
-  if (employeeId && googleEmail) {
+  if (employeeUuid && googleEmail) {
     const admin = createAdminClient(cookieStore);
 
     try {
-      await admin.from("linked_accounts").upsert(
+      const { error: linkErr } = await admin.from("linked_accounts").upsert(
         {
-          employee_id: employeeId,
+          employee_id: employeeUuid,
           provider: "google",
           provider_account_id: googleUserId,
           email: googleEmail,
@@ -110,6 +117,9 @@ export async function GET(request: NextRequest) {
         },
         { onConflict: "employee_id,provider" }
       );
+      if (linkErr) {
+        console.error("[OAuth Callback] Upsert error:", linkErr);
+      }
     } catch (e) {
       console.warn("[OAuth Callback] Could not upsert into linked_accounts:", e);
     }

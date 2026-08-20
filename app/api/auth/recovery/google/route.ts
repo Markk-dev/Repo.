@@ -38,11 +38,26 @@ async function getAuthenticatedEmployeeId(): Promise<{ id: string; employeeId: s
     // Fall back to local session format
   }
 
-  // 2. Fall back to local session parsing
+  // 2. Fall back to local session parsing -> resolve UUID from database
   if (sessionKey.startsWith("local_")) {
     try {
       const parts = sessionKey.split("_");
       const empCode = Buffer.from(parts[1], "base64").toString("utf-8");
+      
+      const { data: empData } = await supabase
+        .from("employees")
+        .select("id, employee_id, name")
+        .eq("employee_id", empCode)
+        .maybeSingle();
+
+      if (empData) {
+        return {
+          id: empData.id,
+          employeeId: empData.employee_id,
+          name: empData.name,
+        };
+      }
+
       const employee = EMPLOYEES.find((emp) => emp.employeeId === empCode);
       if (employee) {
         return {
@@ -73,11 +88,12 @@ export async function GET() {
     const cookieStore = await cookies();
     const supabase = createAdminClient(cookieStore);
 
-    // Check Supabase linked_accounts table
+    // Check Supabase linked_accounts table for this employee
     try {
       const { data, error } = await supabase
         .from("linked_accounts")
         .select("id, email, is_verified, linked_at")
+        .eq("employee_id", auth.id)
         .eq("provider", "google")
         .maybeSingle();
 
@@ -200,6 +216,7 @@ export async function DELETE() {
       await supabase
         .from("linked_accounts")
         .delete()
+        .eq("employee_id", auth.id)
         .eq("provider", "google");
     } catch {
       // ignore
