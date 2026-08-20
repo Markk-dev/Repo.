@@ -1777,6 +1777,10 @@ textarea {
   animation: modalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.settings-mobile-drag-handle-area {
+  display: none;
+}
+
 .settings-mobile-drag-handle {
   display: none;
 }
@@ -1797,23 +1801,25 @@ textarea {
 .settings-sidebar-user {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 4px 6px;
 }
 
 .settings-user-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   background-color: var(--color-accent);
   color: #ffffff;
   font-family: var(--font-header);
-  font-weight: 800;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 186, 88, 0.18);
+  overflow: hidden;
 }
 
 .settings-user-meta {
@@ -2820,6 +2826,158 @@ textarea {
   background-color: #fee2e2;
   color: #dc2626;
   border-radius: 6px;
+}
+
+/* Discord-Style MFA & Social Accounts Subview */
+.discord-mfa-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  overflow: hidden;
+  height: 100%;
+}
+
+.mfa-provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mfa-provider-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: var(--radius-sm);
+  background-color: #f7f5f1;
+  border: 1px solid var(--color-border-default);
+  transition: all 0.15s ease;
+}
+
+.mfa-provider-card:hover {
+  background-color: #fbf9f6;
+  border-color: #dfd6cc;
+}
+
+.mfa-provider-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.mfa-provider-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mfa-provider-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mfa-provider-name {
+  font-family: var(--font-header);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.mfa-provider-desc {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: #716761;
+  line-height: 1.4;
+}
+
+.mfa-provider-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mfa-provider-status-badge.connected {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.mfa-provider-status-badge.disconnected {
+  background-color: #f0ebe4;
+  color: #716761;
+  border: 1px solid #dfd6cc;
+}
+
+.mfa-connect-btn {
+  background-color: #ede7df;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 7px 16px;
+  font-family: var(--font-header);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mfa-connect-btn:hover {
+  background-color: #e4ddd4;
+  border-color: #d8cfc3;
+  transform: translateY(-1px);
+}
+
+.mfa-connect-btn:active {
+  transform: translateY(1px);
+}
+
+.mfa-connect-btn.connected-btn {
+  background-color: #ffffff;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.mfa-connect-btn.connected-btn:hover {
+  background-color: #fef2f2;
+  border-color: #f87171;
+}
+
+.mfa-info-tip-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: #fbf9f6;
+  border: 1px solid #dfd6cc;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: #5c524c;
+  line-height: 1.45;
+}
+
+.mfa-info-tip-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 /* Feed / Dashboard Elements */
