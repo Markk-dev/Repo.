@@ -10,6 +10,7 @@ import {
   MagnifyingGlass,
   MegaphoneSimple,
   PushPin,
+  ShieldCheck,
   SignOut,
   UploadSimple,
   X,
@@ -17,7 +18,7 @@ import {
 import { UserSettingsModal } from '@/components/settings/UserSettingsModal';
 
 export default function DashboardPage() {
-  const { employee, logout, isLoading, sessionOverridden } = useAuth();
+  const { employee, logout, isLoading, sessionOverridden, isVerified } = useAuth();
   const router = useRouter();
   const [activeRail, setActiveRail] = useState('dept-sahs');
   const [activeNavigation, setActiveNavigation] = useState<string | null>(null);
@@ -143,7 +144,12 @@ export default function DashboardPage() {
                 <div className="user-popover-header">
                   <div className="user-popover-info">
                     <div className="user-popover-identity-group">
-                      <span className="user-popover-name">{employee?.name || 'Employee'}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span className="user-popover-name">{employee?.name || 'Employee'}</span>
+                        {isVerified && (
+                          <ShieldCheck size={14} weight="fill" style={{ color: '#00ba58', flexShrink: 0 }} />
+                        )}
+                      </div>
                       <span className="user-popover-pos">{employee?.position || 'Department Staff'}</span>
                     </div>
                     <span className="user-popover-id">ID: {employee?.employeeId}</span>
@@ -183,9 +189,20 @@ export default function DashboardPage() {
                   {employee?.name ? employee.name.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div className="discord-user-details">
-                  <span className="discord-user-name">
-                    {employee?.name ? employee.name.split(' ')[0] : 'User'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span className="discord-user-name">
+                      {employee?.name ? employee.name.split(' ')[0] : 'User'}
+                    </span>
+                    {isVerified && (
+                      <div className="verified-badge-wrapper" aria-label="Verified Profile">
+                        <ShieldCheck size={14} weight="fill" className="verified-badge-icon" />
+                        <div className="verified-tooltip" role="tooltip">
+                          <div className="verified-tooltip-arrow" />
+                          <span>Verified Profile (Google)</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <span className="discord-user-position">
                     {employee?.position || 'Staff'}
                   </span>

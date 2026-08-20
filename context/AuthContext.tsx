@@ -21,6 +21,7 @@ export interface Employee {
   name: string;
   position: string;
   program: string;
+  nickname?: string;
 }
 
 interface AuthContextType {
@@ -32,6 +33,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isLoading: boolean;
   sessionOverridden: boolean;
+  isVerified: boolean;
+  setIsVerified: (val: boolean) => void;
+  refreshVerification: () => Promise<void>;
 }
 
 // ============================================
@@ -48,8 +52,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionOverridden, setSessionOverridden] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  const refreshVerification = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/recovery/google', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setIsVerified(!!data.isVerified);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (employee) {
+      refreshVerification();
+    } else {
+      setIsVerified(false);
+    }
+  }, [employee, refreshVerification]);
 
   // Reset override modal if user is already on the login page
   useEffect(() => {
@@ -176,7 +201,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ employee, login, logout, isLoading, sessionOverridden }}>
+    <AuthContext.Provider
+      value={{
+        employee,
+        login,
+        logout,
+        isLoading,
+        sessionOverridden,
+        isVerified,
+        setIsVerified,
+        refreshVerification,
+      }}
+    >
       {children}
 
       {/* Multi-Device Session Invalidation Modal Alert (only shown when not already on /login) */}
