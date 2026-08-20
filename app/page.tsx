@@ -288,8 +288,8 @@ export default function DashboardPage() {
               <input
                 type="text"
                 className="discord-chat-input"
-                placeholder="Message or search repository..."
-                aria-label="Chat input"
+                placeholder="Place an announcement..."
+                aria-label="Announcement input"
               />
 
               <div className="discord-chat-actions">
