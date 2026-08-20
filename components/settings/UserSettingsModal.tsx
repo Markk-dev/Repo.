@@ -579,13 +579,17 @@ export function UserSettingsModal({
                   {employee?.name || 'Mark Vincent Madrid'}
                 </span>
                 {isVerified && (
-                  <span title="Profile Verified via Google" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <div className="verified-badge-wrapper" aria-label="Verified Profile (Google)">
                     <ShieldCheck
                       size={15}
                       weight="fill"
-                      style={{ color: '#00ba58', flexShrink: 0 }}
+                      className="verified-badge-icon"
                     />
-                  </span>
+                    <div className="verified-tooltip" role="tooltip">
+                      <div className="verified-tooltip-arrow" />
+                      <span>Verified Profile (Google)</span>
+                    </div>
+                  </div>
                 )}
               </div>
               <span className="settings-user-role">

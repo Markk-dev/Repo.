@@ -1846,6 +1846,67 @@ textarea {
   text-overflow: ellipsis;
 }
 
+/* Verified Badge Discord-Style Custom Tooltip */
+.verified-badge-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.verified-badge-icon {
+  color: #00ba58;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.verified-badge-wrapper:hover .verified-badge-icon {
+  transform: scale(1.1);
+}
+
+.verified-tooltip {
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.92);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 9999;
+  white-space: nowrap;
+}
+
+.verified-tooltip-arrow {
+  width: 0;
+  height: 0;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+  border-right: 5px solid #171412;
+  flex-shrink: 0;
+}
+
+.verified-tooltip span {
+  display: block;
+  background-color: #171412;
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4.5px 9px;
+  border-radius: 5px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.verified-badge-wrapper:hover .verified-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
 .settings-search-box {
   display: flex;
   align-items: center;
