@@ -1502,11 +1502,20 @@ textarea {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
+  height: 36px;
+  padding: 0 12px;
   background-color: #ede7df;
-  border: 1px solid var(--color-border-default);
+  border: 1px solid #d4c8bb;
   border-radius: var(--radius-sm);
-  width: 220px;
+  width: 240px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.topbar-search:focus-within {
+  background-color: #ffffff;
+  border-color: #baa798;
+  box-shadow: 0 0 0 1px #baa798;
 }
 
 .topbar-search input {

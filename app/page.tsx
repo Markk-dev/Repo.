@@ -256,7 +256,7 @@ export default function DashboardPage() {
             <div className="topbar-right">
               <div className="topbar-search">
                 <MagnifyingGlass size={15} weight="bold" style={{ color: '#8C817B' }} />
-                <input type="text" placeholder="Search files..." />
+                <input type="text" placeholder="Search files..." aria-label="Search files" />
               </div>
 
               <button className="user-action-btn mobile-search-btn" title="Search" aria-label="Search">
@@ -265,11 +265,6 @@ export default function DashboardPage() {
 
               <button className="user-action-btn" title="Pinned Documents" aria-label="Pins">
                 <PushPin size={18} weight="regular" />
-              </button>
-
-              <button className="topbar-btn-upload">
-                <UploadSimple size={16} weight="bold" />
-                <span>Upload Document</span>
               </button>
             </div>
           </header>
