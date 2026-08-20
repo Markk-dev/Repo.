@@ -180,6 +180,7 @@ export function UserSettingsModal({
   // Google Account Linking & Verification State (for recovery & MFA)
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+  const [googleEmailRevealed, setGoogleEmailRevealed] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [socialFeedback, setSocialFeedback] = useState<string | null>(null);
@@ -1009,6 +1010,35 @@ export function UserSettingsModal({
                           : 'Connect with Google'}
                       </button>
                     </div>
+
+                    {/* Connected Gmail Account Detail Row (Swipeable / draggable on mobile) */}
+                    {googleConnected && (
+                      <div className="settings-card-group" style={{ marginTop: '10px' }}>
+                        <SwipeableSettingsRow
+                          label="Connected"
+                          value={
+                            <span>
+                              {googleEmailRevealed
+                                ? (googleEmail || `${employee?.employeeId?.toLowerCase() || 'user'}@gmail.com`)
+                                : '••••••••••••••••@gmail.com'}
+                            </span>
+                          }
+                          swipeOffset={-74}
+                          actionButton={
+                            <button
+                              type="button"
+                              className="settings-action-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setGoogleEmailRevealed(!googleEmailRevealed);
+                              }}
+                            >
+                              {googleEmailRevealed ? 'Hide' : 'Reveal'}
+                            </button>
+                          }
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Info Note Tip */}
