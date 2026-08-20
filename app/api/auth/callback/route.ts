@@ -8,7 +8,16 @@ import { EMPLOYEES } from "@/constants/employees";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const origin = requestUrl.origin;
+
+  // Determine correct public browser origin
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || requestUrl.host;
+  const proto = request.headers.get("x-forwarded-proto") || (requestUrl.protocol.replace(":", "") || "http");
+  let origin = `${proto}://${host}`;
+
+  // Sanitize 0.0.0.0 binding to localhost so browser doesn't throw ERR_ADDRESS_INVALID
+  if (origin.includes("0.0.0.0")) {
+    origin = origin.replace(/0\.0\.0\.0/g, "localhost");
+  }
 
   if (!code) {
     return NextResponse.redirect(`${origin}/?error=no_code`);

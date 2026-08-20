@@ -432,10 +432,14 @@ export function UserSettingsModal({
         }
       } else {
         const supabase = createClient();
+        const clientOrigin = typeof window !== 'undefined'
+          ? window.location.origin.replace(/0\.0\.0\.0/g, 'localhost')
+          : 'http://localhost:3000';
+
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: `${window.location.origin}/api/auth/callback`,
+            redirectTo: `${clientOrigin}/api/auth/callback`,
             queryParams: {
               access_type: 'offline',
               prompt: 'consent',

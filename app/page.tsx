@@ -55,6 +55,13 @@ export default function DashboardPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('settings=open')) {
+      setSettingsModalOpen(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   if (isLoading || !employee) {
     return (
       <div className="portal-loading-screen" role="status" aria-label="Loading">
