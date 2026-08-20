@@ -63,7 +63,15 @@ AS $$
   );
 $$;
 
--- 7. Trigger to keep updated_at in sync
+-- 8. Function & Trigger to keep updated_at in sync
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE TRIGGER linked_accounts_updated_at
   BEFORE UPDATE ON public.linked_accounts
   FOR EACH ROW
