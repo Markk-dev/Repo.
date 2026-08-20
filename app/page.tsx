@@ -9,10 +9,11 @@ import {
   GearSix,
   MagnifyingGlass,
   MegaphoneSimple,
+  PaperPlaneTilt,
+  PlusCircle,
   PushPin,
   ShieldCheck,
   SignOut,
-  UploadSimple,
   X,
 } from '@phosphor-icons/react/dist/ssr';
 import { UserSettingsModal } from '@/components/settings/UserSettingsModal';
@@ -271,6 +272,38 @@ export default function DashboardPage() {
 
           {/* Empty Clean Content Canvas */}
           <div className="discord-scrollable-content discord-empty-canvas" />
+
+          {/* Bottom Chat Message Bar (Matching Profile Pane Height & Styling) */}
+          <div className="discord-chat-container">
+            <div className="discord-chat-bar">
+              <button
+                type="button"
+                className="discord-chat-attach-btn"
+                title="Attach Document or File"
+                aria-label="Attach file"
+              >
+                <PlusCircle size={22} weight="fill" />
+              </button>
+
+              <input
+                type="text"
+                className="discord-chat-input"
+                placeholder="Message or search repository..."
+                aria-label="Chat input"
+              />
+
+              <div className="discord-chat-actions">
+                <button
+                  type="button"
+                  className="discord-chat-action-btn"
+                  title="Send message"
+                  aria-label="Send"
+                >
+                  <PaperPlaneTilt size={18} weight="bold" />
+                </button>
+              </div>
+            </div>
+          </div>
         </main>
       </div>
 
