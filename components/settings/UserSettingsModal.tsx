@@ -175,8 +175,10 @@ export function UserSettingsModal({
   const [totalDevicesCount, setTotalDevicesCount] = useState(1);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
-  // Google Account Linking State (for recovery & MFA)
+  // Google Account Linking & Verification State (for recovery & MFA)
   const [googleConnected, setGoogleConnected] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [socialFeedback, setSocialFeedback] = useState<string | null>(null);
 
@@ -213,17 +215,32 @@ export function UserSettingsModal({
     }, 240);
   };
 
-  // Reset view on open/close
+  // Reset view & fetch status on open/close
   useEffect(() => {
     if (isOpen) {
       setIsClosing(false);
       setDrawerTranslateY(0);
       fetchDevices();
+      fetchGoogleStatus();
     } else {
       setCurrentView('main');
       setAvatarMenuOpen(false);
     }
   }, [isOpen]);
+
+  const fetchGoogleStatus = async () => {
+    try {
+      const res = await fetch('/api/auth/recovery/google');
+      if (res.ok) {
+        const data = await res.json();
+        setGoogleConnected(data.connected);
+        setIsVerified(data.isVerified);
+        if (data.email) setGoogleEmail(data.email);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch Google recovery status:', e);
+    }
+  };
 
   // Close on Escape
   useEffect(() => {
@@ -399,22 +416,39 @@ export function UserSettingsModal({
     }
   };
 
-  // Google account connection handler
-  const handleToggleGoogle = () => {
+  // Google account connection handler with real API sync
+  const handleToggleGoogle = async () => {
     setSocialLoading('google');
-    setTimeout(() => {
-      setGoogleConnected((prev) => {
-        const next = !prev;
-        setSocialFeedback(
-          next
-            ? 'Google account connected successfully for retrieval!'
-            : 'Google account disconnected.'
-        );
-        setTimeout(() => setSocialFeedback(null), 3000);
-        return next;
-      });
+    try {
+      if (googleConnected) {
+        const res = await fetch('/api/auth/recovery/google', { method: 'DELETE' });
+        if (res.ok) {
+          setGoogleConnected(false);
+          setIsVerified(false);
+          setGoogleEmail(null);
+          setSocialFeedback('Google account disconnected. Profile is now unverified.');
+        }
+      } else {
+        const defaultEmail = `${employee?.employeeId?.toLowerCase() || 'mark.madrid'}@gmail.com`;
+        const res = await fetch('/api/auth/recovery/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: defaultEmail }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setGoogleConnected(true);
+          setIsVerified(true);
+          setGoogleEmail(data.email || defaultEmail);
+          setSocialFeedback('Google account connected! Profile is now verified for emergency recovery.');
+        }
+      }
+    } catch {
+      setSocialFeedback('Network error updating Google connection status.');
+    } finally {
       setSocialLoading(null);
-    }, 400);
+      setTimeout(() => setSocialFeedback(null), 3500);
+    }
   };
 
   // Mobile drawer drag gesture state with PointerCapture for instant responsiveness
@@ -519,9 +553,20 @@ export function UserSettingsModal({
               {employee?.name ? employee.name.charAt(0).toUpperCase() : 'M'}
             </div>
             <div className="settings-user-meta">
-              <span className="settings-user-name">
-                {employee?.name || 'Mark Vincent Madrid'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span className="settings-user-name">
+                  {employee?.name || 'Mark Vincent Madrid'}
+                </span>
+                {isVerified && (
+                  <span title="Profile Verified via Google" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <ShieldCheck
+                      size={15}
+                      weight="fill"
+                      style={{ color: '#00ba58', flexShrink: 0 }}
+                    />
+                  </span>
+                )}
+              </div>
               <span className="settings-user-role">
                 {employee?.position || 'Administrative Assistant'}
               </span>
@@ -911,7 +956,7 @@ export function UserSettingsModal({
                         </div>
                         <span className="mfa-provider-desc">
                           {googleConnected
-                            ? `Linked for account recovery: ${employee?.employeeId?.toLowerCase() || 'user'}@gmail.com`
+                            ? `Linked for account recovery: ${googleEmail || `${employee?.employeeId?.toLowerCase() || 'user'}@gmail.com`}`
                             : 'Link your Google account to quickly verify your identity and recover access.'}
                         </span>
                       </div>
