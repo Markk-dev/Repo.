@@ -97,7 +97,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (res.ok) {
             const data = await res.json();
             if (data.authenticated && data.employee) {
-              setEmployee(data.employee);
+              setEmployee((prev) => {
+                if (
+                  prev &&
+                  prev.id === data.employee.id &&
+                  prev.employeeId === data.employee.employeeId &&
+                  prev.name === data.employee.name &&
+                  prev.position === data.employee.position &&
+                  prev.program === data.employee.program
+                ) {
+                  return prev;
+                }
+                return data.employee;
+              });
             } else {
               setEmployee(null);
             }
@@ -123,16 +135,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkSession();
 
-    // Live heartbeat every 1.5 seconds to immediately detect new logins on other devices
+    // Live heartbeat to detect new logins on other devices (runs every 15s while authenticated)
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && !sessionOverridden) {
         checkSession();
       }
-    }, 1500);
+    }, 15000);
 
     // Re-verify session when user switches back to this tab/window
     const handleVisibilityOrFocus = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && !sessionOverridden) {
         checkSession();
       }
     };
@@ -146,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('focus', handleVisibilityOrFocus);
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
     };
-  }, []);
+  }, [pathname, sessionOverridden]);
 
   // ─── Login ───
   const login = useCallback(

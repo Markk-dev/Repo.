@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Clock,
   Users,
@@ -156,7 +156,7 @@ export function EventModal({
   // Drag-to-dismiss states for mobile drawer
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const dragStartYRef = useRef(0);
+  const dragStartYRef = useRef<number | null>(null);
 
   // Check if viewing a past event
   const isPast = initialEvent?.date
@@ -204,15 +204,33 @@ export function EventModal({
   }, [isOpen, onClose]);
 
   // Touch and Mouse drag-to-dismiss listeners
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+      setDragOffset(0);
+    }, 240);
+  }, [isClosing, onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsClosing(false);
+      setDragOffset(0);
+    }
+  }, [isOpen]);
+
   const handleTouchStart = (e: React.TouchEvent) => {
     dragStartYRef.current = e.touches[0].clientY;
     setIsDragging(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    const currentY = e.touches[0].clientY;
-    const diff = currentY - dragStartYRef.current;
+    if (dragStartYRef.current === null) return;
+    const diff = e.touches[0].clientY - dragStartYRef.current;
     if (diff > 0) {
       setDragOffset(diff);
     } else {
@@ -221,12 +239,13 @@ export function EventModal({
   };
 
   const handleTouchEnd = () => {
-    if (!isDragging) return;
+    if (dragStartYRef.current === null) return;
     setIsDragging(false);
     if (dragOffset > 75) {
-      onClose();
+      handleClose();
     }
     setDragOffset(0);
+    dragStartYRef.current = null;
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -236,7 +255,7 @@ export function EventModal({
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
+      if (!isDragging || dragStartYRef.current === null) return;
       const diff = e.clientY - dragStartYRef.current;
       if (diff > 0) {
         setDragOffset(diff);
@@ -249,7 +268,7 @@ export function EventModal({
       if (!isDragging) return;
       setIsDragging(false);
       if (dragOffset > 75) {
-        onClose();
+        handleClose();
       }
       setDragOffset(0);
     };
@@ -262,14 +281,14 @@ export function EventModal({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragOffset, onClose]);
+  }, [isDragging, dragOffset, handleClose]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isPast) {
-      onClose();
+      handleClose();
       return;
     }
 
@@ -294,7 +313,7 @@ export function EventModal({
       description: description.trim(),
     };
     onSave(eventToSave);
-    onClose();
+    handleClose();
   };
 
   const formattedFullDate = formatFullDate(date);
@@ -305,9 +324,13 @@ export function EventModal({
   const isSaveDisabled = !title.trim() || isPast;
 
   return (
-    <div className="portal-modal-backdrop gcal-modal-backdrop-mobile" onClick={onClose} role="presentation">
+    <div
+      className={`portal-modal-backdrop gcal-modal-backdrop-mobile ${isClosing ? 'backdrop-closing' : ''}`}
+      onClick={handleClose}
+      role="presentation"
+    >
       <div
-        className="portal-modal-card gcal-portal-modal-card gcal-drawer-card"
+        className={`portal-modal-card gcal-portal-modal-card gcal-drawer-card ${isClosing ? 'drawer-closing modal-closing' : ''}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -348,7 +371,7 @@ export function EventModal({
             <button
               type="button"
               className="discord-modal-close-btn"
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Close"
             >
               <X size={18} weight="bold" />
@@ -543,7 +566,7 @@ export function EventModal({
               type="button"
               className="discord-modal-btn discord-modal-btn-cancel"
               style={{ fontWeight: 500 }}
-              onClick={onClose}
+              onClick={handleClose}
             >
               {isPast ? 'Close' : 'Cancel'}
             </button>

@@ -3258,18 +3258,27 @@ textarea {
 
 .mfa-provider-card {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
   border-radius: var(--radius-sm);
   background-color: #f7f5f1;
   border: 1px solid var(--color-border-default);
   transition: all 0.15s ease;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .mfa-provider-card:hover {
   background-color: #fbf9f6;
   border-color: #dfd6cc;
+}
+
+.mfa-provider-top-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
 }
 
 .mfa-provider-icon-box {
@@ -4043,6 +4052,58 @@ textarea {
     padding: 16px 20px calc(28px + env(safe-area-inset-bottom, 0px)) 20px;
   }
 
+  .discord-devices-scroll {
+    padding: 16px 20px calc(28px + env(safe-area-inset-bottom, 0px)) 20px !important;
+    gap: 18px !important;
+    box-sizing: border-box;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .discord-devices-header {
+    padding: 0 16px;
+    height: 48px;
+  }
+
+  .mfa-provider-card {
+    padding: 14px;
+    gap: 12px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .mfa-provider-top-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .mfa-provider-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mfa-connect-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 16px;
+  }
+
+  .discord-device-card {
+    padding: 12px 14px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .discord-devices-title {
+    font-weight: 500 !important;
+    font-size: 1.15rem !important;
+  }
+
+  .discord-device-section-title {
+    font-weight: 500 !important;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -4509,8 +4570,9 @@ textarea {
 }
 
 @media (max-width: 1024px) {
-  .gcal-desktop-nav-group {
-    display: none;
+  .gcal-desktop-nav-group,
+  .gcal-arrows-group {
+    display: none !important;
   }
 
   .gcal-topbar {
@@ -4534,6 +4596,24 @@ textarea {
     justify-content: center;
     gap: 4px;
     justify-self: center;
+  }
+
+  .gcal-mobile-nav-group .gcal-arrow-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+
+  .gcal-mobile-nav-group .gcal-arrow-btn:hover {
+    background-color: #ede7df;
+    color: var(--color-text-primary);
   }
 
   .gcal-topbar-right {
@@ -5476,6 +5556,16 @@ textarea {
   }
 }
 
+.discord-modal-title,
+#gcal-modal-title,
+.gcal-portal-modal-card h2 {
+  font-family: var(--font-header, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif) !important;
+  font-weight: 500 !important;
+  font-size: 16px !important;
+  color: var(--color-text-primary, #171412) !important;
+  letter-spacing: -0.01em;
+}
+
 /* Bottom Sheet / Drawer for Event Modal (Mobile only <= 640px) */
 @media (max-width: 640px) {
   .gcal-modal-backdrop-mobile {
@@ -5524,6 +5614,14 @@ textarea {
   .gcal-drawer-handle-zone:active .gcal-drawer-handle-pill {
     background-color: #009647;
     transform: scaleX(1.08);
+  }
+
+  .gcal-drawer-card.drawer-closing {
+    animation: drawerSlideDown 0.24s cubic-bezier(0.32, 0.72, 0, 1) forwards !important;
+  }
+
+  .gcal-modal-backdrop-mobile.backdrop-closing {
+    animation: backdropFadeOut 0.24s ease forwards !important;
   }
 
   @keyframes drawerSlideUp {

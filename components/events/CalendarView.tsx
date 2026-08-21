@@ -10,6 +10,8 @@ import {
 } from '@phosphor-icons/react/dist/ssr';
 import { EventModal, CalendarEvent, getEventPastelPalette } from '@/components/events/EventModal';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { createClient } from '@/utils/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
@@ -26,6 +28,31 @@ interface CalendarViewProps {
   onBack?: () => void;
 }
 
+interface DbCalendarEvent {
+  id: string;
+  user_id?: string | null;
+  title: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  all_day?: boolean;
+  guests?: string;
+  description?: string;
+}
+
+function mapDbToCalendarEvent(row: DbCalendarEvent): CalendarEvent {
+  return {
+    id: row.id,
+    title: row.title,
+    date: row.date,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    allDay: row.all_day,
+    guests: row.guests || '',
+    description: row.description || '',
+  };
+}
+
 export function CalendarView({ userName = 'Mark Vincent Madrid', onBack }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date('2026-08-21T09:00:00'));
   const [events, setEvents] = useState<CalendarEvent[]>(() => {
@@ -39,12 +66,14 @@ export function CalendarView({ userName = 'Mark Vincent Madrid', onBack }: Calen
         }
       }
     }
-    return []; // No placeholder data events as requested
+    return [];
   });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Partial<CalendarEvent> | null>(null);
   const gridScrollRef = useRef<HTMLDivElement>(null);
+  const { employee } = useAuth() || {};
+  const supabase = createClient();
 
   // Scroll to ~8 AM on mount
   useEffect(() => {
@@ -53,24 +82,139 @@ export function CalendarView({ userName = 'Mark Vincent Madrid', onBack }: Calen
     }
   }, []);
 
-  const saveEvents = (updated: CalendarEvent[]) => {
-    setEvents(updated);
+  // Fetch initial events from Supabase and subscribe to Realtime updates
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadEvents() {
+      try {
+        const { data, error } = await supabase
+          .from('calendar_events')
+          .select('*')
+          .order('date', { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          if (isMounted) {
+            const mapped = data.map((d: DbCalendarEvent) => mapDbToCalendarEvent(d));
+            setEvents(mapped);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('sacli_user_events', JSON.stringify(mapped));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error loading calendar events from Supabase:', err);
+      }
+    }
+
+    loadEvents();
+
+    // Supabase Realtime Subscription Channel
+    const channel = supabase
+      .channel('public:calendar_events')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'calendar_events' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newEvt = mapDbToCalendarEvent(payload.new as DbCalendarEvent);
+            setEvents((prev) => {
+              const exists = prev.some((e) => e.id === newEvt.id);
+              const next = exists ? prev.map((e) => (e.id === newEvt.id ? newEvt : e)) : [...prev, newEvt];
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('sacli_user_events', JSON.stringify(next));
+              }
+              return next;
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedEvt = mapDbToCalendarEvent(payload.new as DbCalendarEvent);
+            setEvents((prev) => {
+              const next = prev.map((e) => (e.id === updatedEvt.id ? updatedEvt : e));
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('sacli_user_events', JSON.stringify(next));
+              }
+              return next;
+            });
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as { id: string }).id;
+            setEvents((prev) => {
+              const next = prev.filter((e) => e.id !== deletedId);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('sacli_user_events', JSON.stringify(next));
+              }
+              return next;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
+  const handleSaveEvent = async (eventToSave: CalendarEvent) => {
+    // Optimistic local update
+    const isExisting = events.some((e) => e.id === eventToSave.id);
+    const updatedLocal = isExisting
+      ? events.map((e) => (e.id === eventToSave.id ? eventToSave : e))
+      : [...events, eventToSave];
+
+    setEvents(updatedLocal);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('sacli_user_events', JSON.stringify(updated));
+      localStorage.setItem('sacli_user_events', JSON.stringify(updatedLocal));
+    }
+
+    // Save to Supabase
+    try {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventToSave.id);
+      const payload: Record<string, unknown> = {
+        title: eventToSave.title,
+        date: eventToSave.date,
+        start_time: eventToSave.startTime,
+        end_time: eventToSave.endTime,
+        all_day: eventToSave.allDay || false,
+        guests: eventToSave.guests || '',
+        description: eventToSave.description || '',
+        user_id: employee?.id || null,
+      };
+      if (isUuid) {
+        payload.id = eventToSave.id;
+      }
+
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .upsert(payload)
+        .select()
+        .single();
+
+      if (!error && data) {
+        const savedEvt = mapDbToCalendarEvent(data as DbCalendarEvent);
+        setEvents((prev) =>
+          prev.map((e) => (e.id === eventToSave.id ? savedEvt : e))
+        );
+      }
+    } catch (err) {
+      console.error('Error saving event to Supabase:', err);
     }
   };
 
-  const handleSaveEvent = (eventToSave: CalendarEvent) => {
-    const exists = events.some((e) => e.id === eventToSave.id);
-    if (exists) {
-      saveEvents(events.map((e) => (e.id === eventToSave.id ? eventToSave : e)));
-    } else {
-      saveEvents([...events, eventToSave]);
+  const handleDeleteEvent = async (eventId: string) => {
+    // Optimistic local update
+    const updatedLocal = events.filter((e) => e.id !== eventId);
+    setEvents(updatedLocal);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sacli_user_events', JSON.stringify(updatedLocal));
     }
-  };
 
-  const handleDeleteEvent = (eventId: string) => {
-    saveEvents(events.filter((e) => e.id !== eventId));
+    // Delete from Supabase
+    try {
+      await supabase.from('calendar_events').delete().eq('id', eventId);
+    } catch (err) {
+      console.error('Error deleting event from Supabase:', err);
+    }
   };
 
   const getWeekDays = (date: Date) => {
@@ -86,7 +230,15 @@ export function CalendarView({ userName = 'Mark Vincent Madrid', onBack }: Calen
     });
   };
 
+  const getMonthDays = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const numDays = new Date(year, month + 1, 0).getDate();
+    return Array.from({ length: numDays }, (_, i) => new Date(year, month, i + 1));
+  };
+
   const weekDays = getWeekDays(currentDate);
+  const monthDays = getMonthDays(currentDate);
 
   const formatMonthYear = (d: Date) => {
     return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -104,8 +256,26 @@ export function CalendarView({ userName = 'Mark Vincent Madrid', onBack }: Calen
     setCurrentDate(d);
   };
 
+  const navigatePrevMonth = () => {
+    const d = new Date(currentDate);
+    d.setMonth(d.getMonth() - 1);
+    setCurrentDate(d);
+  };
+
+  const navigateNextMonth = () => {
+    const d = new Date(currentDate);
+    d.setMonth(d.getMonth() + 1);
+    setCurrentDate(d);
+  };
+
   const navigateToday = () => {
     setCurrentDate(new Date('2026-08-21T09:00:00'));
+    setTimeout(() => {
+      const todayElem = document.getElementById('mobile-day-row-2026-08-21');
+      if (todayElem) {
+        todayElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
   };
 
   const isToday = (d: Date) => {
@@ -170,7 +340,7 @@ export function CalendarView({ userName = 'Mark Vincent Madrid', onBack }: Calen
             Today
           </button>
 
-          {/* Desktop/Tablet Left-Aligned Nav Controls */}
+          {/* Desktop Left-Aligned Nav Controls (Laptop only) */}
           <div className="gcal-desktop-nav-group">
             <div className="gcal-arrows-group">
               <Tooltip content="Previous" position="bottom">
@@ -200,14 +370,14 @@ export function CalendarView({ userName = 'Mark Vincent Madrid', onBack }: Calen
           </div>
         </div>
 
-        {/* Mobile-Only Centered Nav Controls: [< Arrow Left] [August 2026] [> Arrow Right] */}
+        {/* Mobile & Tablet Header: [< Prev Month] [Month Year] [> Next Month] */}
         <div className="gcal-mobile-nav-group">
-          <Tooltip content="Previous" position="bottom">
+          <Tooltip content="Previous Month" position="bottom">
             <button
               type="button"
               className="gcal-arrow-btn"
-              onClick={navigatePrev}
-              aria-label="Previous"
+              onClick={navigatePrevMonth}
+              aria-label="Previous month"
             >
               <CaretLeft size={16} weight="bold" />
             </button>
@@ -215,12 +385,12 @@ export function CalendarView({ userName = 'Mark Vincent Madrid', onBack }: Calen
 
           <h2 className="gcal-month-title">{formatMonthYear(currentDate)}</h2>
 
-          <Tooltip content="Next" position="bottom">
+          <Tooltip content="Next Month" position="bottom">
             <button
               type="button"
               className="gcal-arrow-btn"
-              onClick={navigateNext}
-              aria-label="Next"
+              onClick={navigateNextMonth}
+              aria-label="Next month"
             >
               <CaretRight size={16} weight="bold" />
             </button>
@@ -243,11 +413,11 @@ export function CalendarView({ userName = 'Mark Vincent Madrid', onBack }: Calen
         </div>
       </header>
 
-      {/* Main Calendar Viewport (Desktop Grid + Mobile Agenda Feed) */}
+      {/* Main Calendar Viewport (Desktop Grid + Mobile/Tablet Agenda Feed) */}
       <div className="gcal-calendar-viewport">
-        {/* Mobile Schedule Feed (Visible only on mobile <= 768px) */}
+        {/* Mobile & Tablet Schedule Feed (Scrollable all days in month) */}
         <div className="gcal-mobile-schedule-feed">
-          {weekDays.map((d) => {
+          {monthDays.map((d) => {
             const dateKey = d.toISOString().split('T')[0];
             const active = isToday(d);
             const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
@@ -256,7 +426,11 @@ export function CalendarView({ userName = 'Mark Vincent Madrid', onBack }: Calen
             const dayEvents = events.filter((e) => e.date === dateKey);
 
             return (
-              <div key={dateKey} className={`gcal-mobile-day-row ${active ? 'is-today' : ''}`}>
+              <div
+                key={dateKey}
+                id={`mobile-day-row-${dateKey}`}
+                className={`gcal-mobile-day-row ${active ? 'is-today' : ''}`}
+              >
                 {/* Left Date Column (Vertical) */}
                 <div className="gcal-mobile-date-col">
                   <span className={`gcal-mobile-weekday-name ${active ? 'is-today' : ''}`}>{dayStr}</span>
