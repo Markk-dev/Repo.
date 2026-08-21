@@ -156,6 +156,7 @@ export default function DashboardPage() {
               <PopoverMenu
                 isOpen={serverMenuOpen}
                 onClose={() => setServerMenuOpen(false)}
+                anchorRef={serverMenuRef}
                 position="bottom"
                 align="left"
                 className="sidebar-server-popover"
@@ -347,6 +348,7 @@ export default function DashboardPage() {
                   <PopoverMenu
                     isOpen={attachMenuOpen}
                     onClose={() => setAttachMenuOpen(false)}
+                    anchorRef={attachMenuRef}
                     align="left"
                     items={[
                       {

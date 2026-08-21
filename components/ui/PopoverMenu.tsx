@@ -13,6 +13,7 @@ export interface PopoverMenuItem {
 export interface PopoverMenuProps {
   isOpen: boolean;
   onClose?: () => void;
+  anchorRef?: React.RefObject<HTMLElement | null>;
   items?: PopoverMenuItem[];
   children?: React.ReactNode;
   className?: string;
@@ -25,6 +26,7 @@ export interface PopoverMenuProps {
 export function PopoverMenu({
   isOpen,
   onClose,
+  anchorRef,
   items,
   children,
   className = '',
@@ -39,7 +41,12 @@ export function PopoverMenu({
     if (!isOpen || !onClose) return;
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(target) &&
+        (!anchorRef?.current || !anchorRef.current.contains(target))
+      ) {
         onClose();
       }
     };
@@ -57,7 +64,7 @@ export function PopoverMenu({
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, anchorRef]);
 
   if (!isOpen) return null;
 

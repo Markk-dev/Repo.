@@ -17,11 +17,21 @@ import {
   List,
   DotsThreeVertical,
   CalendarBlank,
+  Clock,
+  Trash,
 } from '@phosphor-icons/react/dist/ssr';
-import { EventModal, CalendarEvent } from '@/components/events/EventModal';
+import { EventModal, CalendarEvent, getEventPastelPalette } from '@/components/events/EventModal';
 import { Tooltip } from '@/components/ui/Tooltip';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+const isPastEvent = (eventDate: string, eventEndTime: string) => {
+  const todayKey = '2026-08-21';
+  const currentTime = '15:20';
+  if (eventDate < todayKey) return true;
+  if (eventDate === todayKey && eventEndTime <= currentTime) return true;
+  return false;
+};
 
 export default function EventsPage() {
   const router = useRouter();
@@ -144,8 +154,13 @@ export default function EventsPage() {
 
   // Handle clicking empty time slot to create event
   const handleSlotClick = (dateStr: string, hour: number) => {
+    const todayKey = '2026-08-21';
+    const currentHour = 15;
+    if (dateStr < todayKey) return;
+    if (dateStr === todayKey && hour < currentHour) return;
+
     const startStr = `${hour.toString().padStart(2, '0')}:00`;
-    const endStr = `${(hour + 1).toString().padStart(2, '0')}:00`;
+    const endStr = `${Math.min(23, hour + 1).toString().padStart(2, '0')}:00`;
     setSelectedEvent({
       date: dateStr,
       startTime: startStr,
@@ -302,146 +317,226 @@ export default function EventsPage() {
       {/* Main Calendar Viewport */}
       <main className="gcal-calendar-viewport">
         {/* Days Header Row (SUN 16, MON 17, ..., FRI 21 [Active blue]) */}
-        <div className="gcal-days-header-row">
-          <div className="gcal-timezone-corner">
-            <span>GMT+08</span>
-          </div>
+        {/* Mobile Schedule Feed (Visible only on mobile <= 768px) */}
+        <div className="gcal-mobile-schedule-feed">
+          {displayedDays.map((d) => {
+            const dateKey = d.toISOString().split('T')[0];
+            const active = isToday(d);
+            const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+            const dateNum = d.getDate();
 
-          <div className="gcal-days-columns-header">
-            {displayedDays.map((d, index) => {
-              const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-              const dateNum = d.getDate();
-              const active = isToday(d);
-              const dateKey = d.toISOString().split('T')[0];
+            const dayEvents = events.filter((e) => e.date === dateKey);
 
-              // Find all-day events for this day
-              const allDayEvents = events.filter(
-                (e) => e.allDay && e.date === dateKey
-              );
-
-              return (
-                <div key={index} className={`gcal-day-header-cell ${active ? 'is-today' : ''}`}>
-                  <div className="gcal-day-name">{dayStr}</div>
-                  <div className={`gcal-day-number ${active ? 'active-pill' : ''}`}>
-                    {dateNum}
-                  </div>
-
-                  {/* All-Day Events Banner Area */}
-                  <div className="gcal-allday-container">
-                    {allDayEvents.map((evt) => (
-                      <div
-                        key={evt.id}
-                        className="gcal-allday-badge"
-                        style={{ backgroundColor: evt.color || '#00ba58' }}
-                        onClick={(e) => handleEventClick(evt, e)}
-                        title={`${evt.title} (All day)`}
-                      >
-                        {evt.title}
-                      </div>
-                    ))}
-                  </div>
+            return (
+              <div key={dateKey} className={`gcal-mobile-day-row ${active ? 'is-today' : ''}`}>
+                {/* Left Date Column (Vertical) */}
+                <div className="gcal-mobile-date-col">
+                  <span className={`gcal-mobile-weekday-name ${active ? 'is-today' : ''}`}>{dayStr}</span>
+                  <span className={`gcal-mobile-date-pill ${active ? 'is-today' : ''}`}>{dateNum}</span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Scrollable Hours Grid */}
-        <div className="gcal-grid-scroll" ref={gridScrollRef}>
-          <div className="gcal-grid-body">
-            {/* Time labels column on left */}
-            <div className="gcal-time-labels-col">
-              {HOURS.map((hour) => {
-                const hourFormatted =
-                  hour === 0
-                    ? ''
-                    : hour === 12
-                    ? '12 PM'
-                    : hour > 12
-                    ? `${hour - 12} PM`
-                    : `${hour} AM`;
-
-                return (
-                  <div key={hour} className="gcal-time-label-cell">
-                    <span>{hourFormatted}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Day columns grid */}
-            <div className="gcal-grid-days-container">
-              {displayedDays.map((d, dayIndex) => {
-                const dateKey = d.toISOString().split('T')[0];
-                const active = isToday(d);
-
-                // Filter non-all-day events for this specific day
-                const dayEvents = events.filter(
-                  (e) =>
-                    !e.allDay &&
-                    e.date === dateKey &&
-                    (searchQuery
-                      ? e.title.toLowerCase().includes(searchQuery.toLowerCase())
-                      : true)
-                );
-
-                return (
-                  <div key={dayIndex} className="gcal-grid-day-col">
-                    {/* Hour row grid lines and click zones */}
-                    {HOURS.map((hour) => (
-                      <div
-                        key={hour}
-                        className="gcal-hour-cell"
-                        onClick={() => handleSlotClick(dateKey, hour)}
-                      />
-                    ))}
-
-                    {/* Red Current Time Indicator Line on Today */}
-                    {active && (
-                      <div
-                        className="gcal-current-time-indicator"
-                        style={{
-                          top: `${(15 * 60 + 20) * (60 / 60)}px`, // ~3:20 PM
-                        }}
-                      >
-                        <div className="gcal-time-dot" />
-                        <div className="gcal-time-line" />
-                      </div>
-                    )}
-
-                    {/* Event Blocks positioned dynamically by start time and duration */}
-                    {dayEvents.map((evt) => {
-                      const startMin = timeToMinutes(evt.startTime);
-                      const endMin = timeToMinutes(evt.endTime);
-                      const duration = Math.max(30, endMin - startMin);
-                      const topPx = (startMin / 60) * 60; // 60px per hour
-                      const heightPx = Math.max(26, (duration / 60) * 60 - 2);
+                {/* Right Events Stack */}
+                <div className="gcal-mobile-events-stack">
+                  {dayEvents.length === 0 ? (
+                    <button
+                      type="button"
+                      className="gcal-mobile-empty-slot"
+                      onClick={() => handleSlotClick(dateKey, 16)}
+                      aria-label="Add event on this date"
+                    />
+                  ) : (
+                    dayEvents.map((evt) => {
+                      const palette = getEventPastelPalette(evt);
+                      const isPast = isPastEvent(evt.date, evt.endTime);
 
                       return (
                         <div
                           key={evt.id}
-                          className="gcal-event-card"
+                          className={`gcal-mobile-event-card ${isPast ? 'is-past-slashed' : ''}`}
                           style={{
-                            top: `${topPx}px`,
-                            height: `${heightPx}px`,
-                            backgroundColor: evt.color || '#0288d1',
+                            background: isPast
+                              ? `repeating-linear-gradient(135deg, ${palette.stripe} 0px, ${palette.stripe} 1.5px, transparent 1.5px, transparent 6px), linear-gradient(180deg, ${palette.bgLight} 0%, ${palette.bgDark} 100%)`
+                              : `linear-gradient(180deg, ${palette.bgLight} 0%, ${palette.bgDark} 100%)`,
+                            borderColor: palette.border,
                           }}
                           onClick={(e) => handleEventClick(evt, e)}
-                          title={`${evt.title} (${evt.startTime} - ${evt.endTime})`}
                         >
-                          <div className="gcal-event-card-title">{evt.title}</div>
-                          <div className="gcal-event-card-time">
-                            {evt.startTime} – {evt.endTime}
+                          <div className="gcal-mobile-event-content">
+                            <div className="gcal-mobile-event-title" style={{ color: palette.text }}>
+                              {evt.title}
+                            </div>
+                            <div className="gcal-mobile-event-time" style={{ color: palette.subText }}>
+                              <Clock size={13} weight="regular" />
+                              <span>{evt.startTime} – {evt.endTime}</span>
+                            </div>
                           </div>
-                          {evt.location && (
-                            <div className="gcal-event-card-sub">{evt.location}</div>
-                          )}
+
+                          <button
+                            type="button"
+                            className="gcal-mobile-delete-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteEvent(evt.id);
+                            }}
+                            title="Delete event"
+                            aria-label="Delete event"
+                          >
+                            <Trash size={14} weight="bold" />
+                          </button>
                         </div>
                       );
-                    })}
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop Grid View (Visible only on desktop > 768px) */}
+        <div className="gcal-desktop-grid-view">
+          <div className="gcal-days-header-row">
+            <div className="gcal-timezone-corner">
+              <span>GMT+08</span>
+            </div>
+
+            <div className="gcal-days-columns-header">
+              {displayedDays.map((d, index) => {
+                const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                const dateNum = d.getDate();
+                const active = isToday(d);
+
+                return (
+                  <div key={index} className={`gcal-day-header-cell ${active ? 'is-today' : ''}`}>
+                    <div className="gcal-day-name">{dayStr}</div>
+                    <div className={`gcal-day-number ${active ? 'active-pill' : ''}`}>
+                      {dateNum}
+                    </div>
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Scrollable Hours Grid */}
+          <div className="gcal-grid-scroll" ref={gridScrollRef}>
+            <div className="gcal-grid-body">
+              {/* Time labels column on left */}
+              <div className="gcal-time-labels-col">
+                {HOURS.map((hour) => {
+                  const hourFormatted =
+                    hour === 0
+                      ? ''
+                      : hour === 12
+                      ? '12 PM'
+                      : hour > 12
+                      ? `${hour - 12} PM`
+                      : `${hour} AM`;
+
+                  return (
+                    <div key={hour} className="gcal-time-label-cell">
+                      <span>{hourFormatted}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Day columns grid */}
+              <div className="gcal-grid-days-container">
+                {displayedDays.map((d, dayIndex) => {
+                  const dateKey = d.toISOString().split('T')[0];
+                  const active = isToday(d);
+
+                  // Filter events for this specific day
+                  const dayEvents = events.filter(
+                    (e) =>
+                      e.date === dateKey &&
+                      (searchQuery
+                        ? e.title.toLowerCase().includes(searchQuery.toLowerCase())
+                        : true)
+                  );
+
+                  return (
+                    <div key={dayIndex} className={`gcal-grid-day-col ${active ? 'is-today' : ''}`}>
+                      {/* Hour row grid lines and click zones */}
+                      {HOURS.map((hour) => (
+                        <div
+                          key={hour}
+                          className="gcal-hour-cell"
+                          onClick={() => handleSlotClick(dateKey, hour)}
+                        />
+                      ))}
+
+                      {/* Red Current Time Indicator Line on Today */}
+                      {active && (
+                        <div
+                          className="gcal-current-time-indicator"
+                          style={{
+                            top: `${(15 * 60 + 20) * (60 / 60)}px`, // ~3:20 PM
+                          }}
+                        >
+                          <div className="gcal-time-dot" />
+                          <div className="gcal-time-line" />
+                        </div>
+                      )}
+
+                      {/* Event Blocks positioned dynamically by start time and duration */}
+                      {dayEvents.map((evt) => {
+                        const startMin = timeToMinutes(evt.startTime);
+                        const endMin = timeToMinutes(evt.endTime);
+                        const duration = Math.max(30, endMin - startMin);
+                        const topPx = (startMin / 60) * 60; // 60px per hour
+                        const heightPx = Math.max(26, (duration / 60) * 60 - 2);
+
+                        const palette = getEventPastelPalette(evt);
+                        const isPast = isPastEvent(evt.date, evt.endTime);
+
+                        return (
+                          <div
+                            key={evt.id}
+                            className={`gcal-event-card ${isPast ? 'is-past-slashed' : ''}`}
+                            style={{
+                              top: `${topPx}px`,
+                              height: `${heightPx}px`,
+                              background: isPast
+                                ? `repeating-linear-gradient(135deg, ${palette.stripe} 0px, ${palette.stripe} 1.5px, transparent 1.5px, transparent 6px), linear-gradient(180deg, ${palette.bgLight} 0%, ${palette.bgDark} 100%)`
+                                : `linear-gradient(180deg, ${palette.bgLight} 0%, ${palette.bgDark} 100%)`,
+                              borderColor: palette.border,
+                              color: palette.text,
+                            }}
+                            onClick={(e) => handleEventClick(evt, e)}
+                            title={`${evt.title} (${evt.startTime} - ${evt.endTime})`}
+                          >
+                            <div className="gcal-event-card-top-row">
+                              <div className="gcal-event-card-title" style={{ color: palette.text, fontWeight: 500 }}>
+                                {evt.title}
+                              </div>
+                              <button
+                                type="button"
+                                className="gcal-event-card-delete-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteEvent(evt.id);
+                                }}
+                                title="Delete event"
+                                aria-label="Delete event"
+                              >
+                                <Trash size={11} weight="bold" />
+                              </button>
+                            </div>
+                            <div className="gcal-event-card-time" style={{ color: palette.subText, fontWeight: 500 }}>
+                              <Clock size={12} weight="regular" />
+                              <span>
+                                {evt.startTime} – {evt.endTime}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
