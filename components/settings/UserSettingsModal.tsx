@@ -18,7 +18,6 @@ import {
   UploadSimple,
   Trash,
   ShieldCheck,
-  Info,
   WarningCircle,
 } from '@phosphor-icons/react/dist/ssr';
 import { Employee } from '@/context/AuthContext';
@@ -1043,10 +1042,9 @@ export function UserSettingsModal({
 
                   {/* Info Note Tip */}
                   <div className="mfa-info-tip-box">
-                    <Info size={22} weight="duotone" className="mfa-info-tip-icon" />
-                    <div>
-                      <strong>Note on Account Retrieval:</strong> Connecting your Google account links your Google email as a trusted recovery method. If you forget your school password or credentials, you can verify and recover your account via Google.
-                    </div>
+                    <p className="mfa-info-tip-text">
+                      <em>Note on Account Retrieval: Connecting your Google account links your Google email as a trusted recovery method. If you forget your school password or credentials, you can verify and recover your account via Google.</em>
+                    </p>
                   </div>
                 </section>
               </div>

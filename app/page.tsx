@@ -4,8 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import {
+  CalendarBlank,
   CaretDown,
   CaretLeft,
+  ChartBarHorizontal,
+  FileArrowUp,
   GearSix,
   MagnifyingGlass,
   MegaphoneSimple,
@@ -14,9 +17,12 @@ import {
   PushPin,
   ShieldCheck,
   SignOut,
+  Users,
   X,
 } from '@phosphor-icons/react/dist/ssr';
 import { UserSettingsModal } from '@/components/settings/UserSettingsModal';
+import { PopoverMenu } from '@/components/ui/PopoverMenu';
+import { CalendarView } from '@/components/events/CalendarView';
 
 export default function DashboardPage() {
   const { employee, logout, isLoading, sessionOverridden, isVerified } = useAuth();
@@ -27,7 +33,12 @@ export default function DashboardPage() {
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+  const [serverMenuOpen, setServerMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const attachMenuRef = useRef<HTMLDivElement>(null);
+  const serverMenuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isLoading && !employee && !sessionOverridden) {
@@ -41,16 +52,24 @@ export default function DashboardPage() {
         if (settingsModalOpen) setSettingsModalOpen(false);
         if (logoutModalOpen) setLogoutModalOpen(false);
         if (userMenuOpen) setUserMenuOpen(false);
+        if (attachMenuOpen) setAttachMenuOpen(false);
+        if (serverMenuOpen) setServerMenuOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [logoutModalOpen, settingsModalOpen, userMenuOpen]);
+  }, [attachMenuOpen, logoutModalOpen, serverMenuOpen, settingsModalOpen, userMenuOpen]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
+      }
+      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target as Node)) {
+        setAttachMenuOpen(false);
+      }
+      if (serverMenuRef.current && !serverMenuRef.current.contains(e.target as Node)) {
+        setServerMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -121,20 +140,62 @@ export default function DashboardPage() {
           {/* 2. Secondary Channel & Category Sidebar */}
           <aside className="discord-sidebar">
             {/* Top Header of Sidebar (Aligned with main topbar line) */}
-            <div className="sidebar-topbar">
+            <div className="sidebar-topbar" ref={serverMenuRef}>
               <button
                 type="button"
-                className={`sidebar-announcement-btn ${activeNavigation === 'Announcement' ? 'active' : ''}`}
-                onClick={() => handleNavSelect('Announcement')}
-                aria-label="Announcement"
+                className={`sidebar-server-header-btn ${serverMenuOpen ? 'active' : ''}`}
+                onClick={() => setServerMenuOpen(!serverMenuOpen)}
+                aria-label="Server options"
+                aria-expanded={serverMenuOpen}
+                aria-haspopup="menu"
               >
-                <MegaphoneSimple size={16} weight="regular" />
-                <span>Announcement</span>
+                <span className="sidebar-server-title">SAHS Department</span>
+                <CaretDown size={14} weight="bold" className={`sidebar-server-caret ${serverMenuOpen ? 'open' : ''}`} />
               </button>
+
+              <PopoverMenu
+                isOpen={serverMenuOpen}
+                onClose={() => setServerMenuOpen(false)}
+                position="bottom"
+                align="left"
+                className="sidebar-server-popover"
+                items={[
+                  {
+                    id: 'member-list',
+                    label: 'Member List',
+                    icon: <Users size={17} weight="regular" />,
+                    onClick: () => {
+                      setServerMenuOpen(false);
+                    },
+                  },
+                ]}
+              />
             </div>
 
             {/* Clean scrollable sidebar area */}
-            <div className="sidebar-channels-scroll" />
+            <div className="sidebar-channels-scroll">
+              <button
+                type="button"
+                className={`sidebar-channel-item ${activeNavigation === 'Announcement' || activeNavigation === null ? 'active' : ''}`}
+                onClick={() => handleNavSelect('Announcement')}
+                aria-label="Announcement Channel"
+              >
+                <MegaphoneSimple size={17} weight="regular" className="sidebar-channel-icon" />
+                <span className="sidebar-channel-label">Announcement</span>
+              </button>
+
+              <button
+                type="button"
+                className={`sidebar-channel-item ${activeNavigation === 'Events' ? 'active' : ''}`}
+                onClick={() => handleNavSelect('Events')}
+                aria-label="Events Calendar"
+              >
+                <CalendarBlank size={17} weight="regular" className="sidebar-channel-icon" />
+                <span className="sidebar-channel-label">Events</span>
+              </button>
+
+              <div className="sidebar-channels-divider" />
+            </div>
           </aside>
 
           {/* Discord-style Floating Bottom User Profile Bar (Spanning across rail and sidebar) */}
@@ -239,71 +300,122 @@ export default function DashboardPage() {
 
         {/* 3. Main Content Workspace */}
         <main className="discord-main">
-          {/* Top Header (Aligned with sidebar topbar line) */}
-          <header className="discord-topbar">
-            <div className="topbar-left">
-              {/* Mobile Back Button to navigate back to Channels View */}
-              <button
-                type="button"
-                className="mobile-back-btn"
-                onClick={() => setMobileNavOpen(true)}
-                aria-label="Back to channels"
-                title="Channels"
-              >
-                <CaretLeft size={20} weight="bold" />
-              </button>
-            </div>
+          {activeNavigation === 'Events' ? (
+            <CalendarView
+              userName={employee?.name || 'Mark Vincent Madrid'}
+              onBack={() => setMobileNavOpen(true)}
+            />
+          ) : (
+            <>
+              {/* Top Header (Aligned with sidebar topbar line) */}
+              <header className="discord-topbar">
+                <div className="topbar-left">
+                  {/* Mobile Back Button to navigate back to Channels View */}
+                  <button
+                    type="button"
+                    className="mobile-back-btn"
+                    onClick={() => setMobileNavOpen(true)}
+                    aria-label="Back to channels"
+                    title="Channels"
+                  >
+                    <CaretLeft size={20} weight="bold" />
+                  </button>
+                </div>
 
-            <div className="topbar-right">
-              <div className="topbar-search">
-                <MagnifyingGlass size={15} weight="bold" style={{ color: '#8C817B' }} />
-                <input type="text" placeholder="Search files..." aria-label="Search files" />
+                <div className="topbar-right">
+                  <div className="topbar-search">
+                    <MagnifyingGlass size={15} weight="bold" style={{ color: '#8C817B' }} />
+                    <input type="text" placeholder="Search files..." aria-label="Search files" />
+                  </div>
+
+                  <button className="user-action-btn mobile-search-btn" title="Search" aria-label="Search">
+                    <MagnifyingGlass size={18} weight="bold" />
+                  </button>
+
+                  <button className="user-action-btn" title="Pinned Documents" aria-label="Pins">
+                    <PushPin size={18} weight="regular" />
+                  </button>
+                </div>
+              </header>
+
+              {/* Empty Clean Content Canvas */}
+              <div className="discord-scrollable-content discord-empty-canvas" />
+
+              {/* Bottom Chat Message Bar (Matching Profile Pane Height & Styling) */}
+              <div className="discord-chat-container">
+                <div className="discord-chat-bar" ref={attachMenuRef}>
+                  <PopoverMenu
+                    isOpen={attachMenuOpen}
+                    onClose={() => setAttachMenuOpen(false)}
+                    align="left"
+                    items={[
+                      {
+                        id: 'upload-image',
+                        label: 'Upload Image',
+                        icon: <FileArrowUp size={18} weight="regular" />,
+                        onClick: () => {
+                          setAttachMenuOpen(false);
+                          fileInputRef.current?.click();
+                        },
+                      },
+                      {
+                        id: 'create-poll',
+                        label: 'Create Poll',
+                        icon: <ChartBarHorizontal size={18} weight="regular" />,
+                        onClick: () => {
+                          setAttachMenuOpen(false);
+                        },
+                      },
+                    ]}
+                  />
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        console.log('Selected image file:', file.name);
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    className={`discord-chat-attach-btn ${attachMenuOpen ? 'active' : ''}`}
+                    title="Attach Document or File"
+                    aria-label="Attach file"
+                    aria-expanded={attachMenuOpen}
+                    aria-haspopup="menu"
+                    onClick={() => setAttachMenuOpen(!attachMenuOpen)}
+                  >
+                    <PlusCircle size={22} weight="fill" />
+                  </button>
+
+                  <input
+                    type="text"
+                    className="discord-chat-input"
+                    placeholder="Post an Announcement..."
+                    aria-label="Post an announcement"
+                  />
+
+                  <div className="discord-chat-actions">
+                    <button
+                      type="button"
+                      className="discord-chat-action-btn"
+                      title="Send message"
+                      aria-label="Send"
+                    >
+                      <PaperPlaneTilt size={18} weight="bold" />
+                    </button>
+                  </div>
+                </div>
               </div>
-
-              <button className="user-action-btn mobile-search-btn" title="Search" aria-label="Search">
-                <MagnifyingGlass size={18} weight="bold" />
-              </button>
-
-              <button className="user-action-btn" title="Pinned Documents" aria-label="Pins">
-                <PushPin size={18} weight="regular" />
-              </button>
-            </div>
-          </header>
-
-          {/* Empty Clean Content Canvas */}
-          <div className="discord-scrollable-content discord-empty-canvas" />
-
-          {/* Bottom Chat Message Bar (Matching Profile Pane Height & Styling) */}
-          <div className="discord-chat-container">
-            <div className="discord-chat-bar">
-              <button
-                type="button"
-                className="discord-chat-attach-btn"
-                title="Attach Document or File"
-                aria-label="Attach file"
-              >
-                <PlusCircle size={22} weight="fill" />
-              </button>
-
-              <input
-                type="text"
-                className="discord-chat-input"
-                placeholder="Place an announcement..."
-                aria-label="Announcement input"
-              />
-
-              <div className="discord-chat-actions">
-                <button
-                  type="button"
-                  className="discord-chat-action-btn"
-                  title="Send message"
-                  aria-label="Send"
-                >
-                  <PaperPlaneTilt size={18} weight="bold" />
-                </button>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </main>
       </div>
 

@@ -1,13 +1,6 @@
--- ==============================================================================
--- 003_linked_accounts_recovery.sql
--- Multi-Factor / Recovery Linked Accounts & Verification Status Schema
--- ==============================================================================
-
--- 1. Add nickname column to employees table
 ALTER TABLE public.employees
   ADD COLUMN IF NOT EXISTS nickname TEXT DEFAULT 'Mark';
 
--- 2. Create linked_accounts table with Foreign Key referencing employees(id)
 CREATE TABLE IF NOT EXISTS public.linked_accounts (
   id                  UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   employee_id         UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
@@ -21,18 +14,14 @@ CREATE TABLE IF NOT EXISTS public.linked_accounts (
   CONSTRAINT uq_employee_provider UNIQUE (employee_id, provider)
 );
 
--- 2. Foreign key index (Essential for fast JOINs and ON DELETE CASCADE)
 CREATE INDEX IF NOT EXISTS idx_linked_accounts_employee_id
   ON public.linked_accounts (employee_id);
 
--- 3. Email index for fast lookups during account recovery
 CREATE INDEX IF NOT EXISTS idx_linked_accounts_email
   ON public.linked_accounts (email);
 
--- 5. Enable Row Level Security (RLS)
 ALTER TABLE public.linked_accounts ENABLE ROW LEVEL SECURITY;
 
--- 6. Access Policies
 DROP POLICY IF EXISTS "Employees can view own linked accounts" ON public.linked_accounts;
 DROP POLICY IF EXISTS "Allow all on linked_accounts" ON public.linked_accounts;
 
@@ -45,7 +34,6 @@ CREATE POLICY "Allow all on linked_accounts"
 
 GRANT ALL ON public.linked_accounts TO postgres, anon, authenticated, service_role;
 
--- 6. Helper Function: Check if an employee is verified via Google
 CREATE OR REPLACE FUNCTION public.is_employee_verified(p_employee_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -61,7 +49,6 @@ AS $$
   );
 $$;
 
--- 8. Function & Trigger to keep updated_at in sync
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
