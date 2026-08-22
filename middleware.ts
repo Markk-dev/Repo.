@@ -19,6 +19,14 @@ import {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Check for session cookie
+  const sessionKey = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+
+  // If user is already logged in and tries to access /login, redirect straight to dashboard (/)
+  if (sessionKey && (pathname === "/login" || pathname.startsWith("/login/"))) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   // Allow public paths
   if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
     return NextResponse.next();
@@ -28,9 +36,6 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/api/auth/")) {
     return NextResponse.next();
   }
-
-  // Check for session cookie
-  const sessionKey = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
   if (!sessionKey) {
     // API requests get a 401

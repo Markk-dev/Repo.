@@ -158,7 +158,17 @@ export function DatePickerCalendar({
               type="button"
               disabled={isPast}
               className={`shadcn-cal-day-cell ${!d.isCurrentMonth ? 'outside' : ''} ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''} ${isPast ? 'disabled' : ''}`}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isPast) {
+                  onSelect(d.dateStr);
+                  onClose();
+                }
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 if (!isPast) {
                   onSelect(d.dateStr);
                   onClose();
@@ -176,7 +186,15 @@ export function DatePickerCalendar({
         <button
           type="button"
           className="shadcn-cal-footer-btn"
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect(todayStr);
+            onClose();
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             onSelect(todayStr);
             onClose();
           }}
@@ -186,7 +204,15 @@ export function DatePickerCalendar({
         <button
           type="button"
           className="shadcn-cal-footer-btn highlight"
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect(todayStr);
+            onClose();
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             onSelect(todayStr);
             onClose();
           }}

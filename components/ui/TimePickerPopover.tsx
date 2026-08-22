@@ -62,7 +62,17 @@ export function TimePickerPopover({
             type="button"
             disabled={isPastSlot}
             className={`shadcn-time-option ${isSelected ? 'selected' : ''} ${isPastSlot ? 'disabled' : ''}`}
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isPastSlot) {
+                onSelect(slot);
+                onClose();
+              }
+            }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               if (!isPastSlot) {
                 onSelect(slot);
                 onClose();

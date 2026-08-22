@@ -5,12 +5,15 @@ import {
   Clock,
   Users,
   TextAlignLeft,
+  NotePencil,
+  BookmarkSimple,
   X,
   CalendarBlank,
   Trash,
 } from '@phosphor-icons/react/dist/ssr';
 import { DatePickerCalendar } from '@/components/ui/DatePickerCalendar';
 import { TimePickerPopover } from '@/components/ui/TimePickerPopover';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 export interface CalendarEvent {
   id: string;
@@ -24,6 +27,7 @@ export interface CalendarEvent {
   hasMeet?: boolean;
   location?: string;
   description?: string;
+  remarks?: string;
   color?: string;
 }
 
@@ -156,6 +160,7 @@ export function EventModal({
   const [allDay, setAllDay] = useState(false);
   const [guests, setGuests] = useState('');
   const [description, setDescription] = useState('');
+  const [remarks, setRemarks] = useState('');
   const [isTimeEditing, setIsTimeEditing] = useState(false);
   const [conflictWarningOpen, setConflictWarningOpen] = useState(false);
   const [conflictEventTitle, setConflictEventTitle] = useState('');
@@ -204,6 +209,7 @@ export function EventModal({
       setAllDay(initialEvent.allDay || false);
       setGuests(initialGuests);
       setDescription(initialEvent.description || '');
+      setRemarks(initialEvent.remarks || '');
       setIsTimeEditing(false);
     } else {
       setTitle('');
@@ -213,6 +219,7 @@ export function EventModal({
       setAllDay(false);
       setGuests('');
       setDescription('');
+      setRemarks('');
       setIsTimeEditing(false);
     }
     setDragOffset(0);
@@ -357,6 +364,7 @@ export function EventModal({
       allDay,
       guests: formattedGuests,
       description: description.trim(),
+      remarks: remarks.trim(),
     };
     onSave(eventToSave);
     handleClose();
@@ -449,15 +457,13 @@ export function EventModal({
                 )}
               </div>
 
-              {/* Time / Date Section */}
-              <div className="gcal-portal-row">
-                <div className="gcal-portal-icon-box">
-                  <Clock size={19} weight="regular" className="gcal-portal-icon" />
-                </div>
-
-                <div className="gcal-portal-row-content">
-                  {!isTimeEditing || isPast ? (
-                    /* Collapsed view */
+              {/* Collapsed view (when !isTimeEditing || isPast) */}
+              {(!isTimeEditing || isPast) && (
+                <div className="gcal-portal-row">
+                  <div className="gcal-portal-icon-box">
+                    <BookmarkSimple size={19} weight="regular" className="gcal-portal-icon" />
+                  </div>
+                  <div className="gcal-portal-row-content">
                     <div
                       className={`gcal-time-summary-box ${isPast ? 'disabled' : ''}`}
                       onClick={isPast ? undefined : () => setIsTimeEditing(true)}
@@ -477,15 +483,31 @@ export function EventModal({
                         </span>
                       </div>
                     </div>
-                  ) : (
-                    /* Expanded view */
-                    <div className="gcal-time-expanded-box">
+                  </div>
+                </div>
+              )}
+
+              {/* Expanded view (when isTimeEditing && !isPast) */}
+              {isTimeEditing && !isPast && (
+                <>
+                  {/* Desktop & Tablet Layout (Single inline row) */}
+                  <div
+                    className="gcal-portal-row gcal-desktop-only-row gcal-split-desktop-anim"
+                    style={{ position: 'relative', zIndex: (datePickerOpen || startTimePickerOpen || endTimePickerOpen) ? 9999 : 20 }}
+                  >
+                    <div className="gcal-portal-icon-box">
+                      <Clock size={19} weight="regular" className="gcal-portal-icon" />
+                    </div>
+                    <div className="gcal-portal-row-content">
                       <div className="gcal-datetime-chips-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                         {/* Date Chip Button */}
-                        <div className="gcal-picker-anchor">
+                        <div
+                          className="gcal-picker-anchor"
+                          style={{ zIndex: datePickerOpen ? 99999 : 10 }}
+                        >
                           <button
                             type="button"
-                            className="gcal-chip-btn"
+                            className={`gcal-chip-btn ${datePickerOpen ? 'active' : ''}`}
                             onClick={() => {
                               setDatePickerOpen(!datePickerOpen);
                               setStartTimePickerOpen(false);
@@ -508,12 +530,23 @@ export function EventModal({
                         </div>
 
                         {!allDay && (
-                          <div className="gcal-chip-time-group" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <div
+                            className="gcal-chip-time-group"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              zIndex: startTimePickerOpen || endTimePickerOpen ? 99999 : 5,
+                            }}
+                          >
                             {/* Start Time Chip */}
-                            <div className="gcal-picker-anchor">
+                            <div
+                              className="gcal-picker-anchor"
+                              style={{ zIndex: startTimePickerOpen ? 99999 : 10 }}
+                            >
                               <button
                                 type="button"
-                                className="gcal-chip-btn time"
+                                className={`gcal-chip-btn time ${startTimePickerOpen ? 'active' : ''}`}
                                 onClick={() => {
                                   setStartTimePickerOpen(!startTimePickerOpen);
                                   setDatePickerOpen(false);
@@ -544,10 +577,13 @@ export function EventModal({
                             <span className="gcal-chip-sep">–</span>
 
                             {/* End Time Chip */}
-                            <div className="gcal-picker-anchor">
+                            <div
+                              className="gcal-picker-anchor"
+                              style={{ zIndex: endTimePickerOpen ? 99999 : 10 }}
+                            >
                               <button
                                 type="button"
-                                className="gcal-chip-btn time"
+                                className={`gcal-chip-btn time ${endTimePickerOpen ? 'active' : ''}`}
                                 onClick={() => {
                                   setEndTimePickerOpen(!endTimePickerOpen);
                                   setDatePickerOpen(false);
@@ -598,12 +634,165 @@ export function EventModal({
                         </label>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Mobile Row 1: Dedicated Date & All-Day Row */}
+                  <div
+                    className="gcal-portal-row gcal-mobile-only-row gcal-split-row-1"
+                    style={{ position: 'relative', zIndex: datePickerOpen ? 9999 : 19 }}
+                  >
+                    <div className="gcal-portal-icon-box">
+                      <CalendarBlank size={19} weight="regular" className="gcal-portal-icon" />
+                    </div>
+                    <div className="gcal-portal-row-content" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <div
+                        className="gcal-picker-anchor"
+                        style={{ zIndex: datePickerOpen ? 99999 : 10 }}
+                      >
+                        <button
+                          type="button"
+                          className={`gcal-chip-btn ${datePickerOpen ? 'active' : ''}`}
+                          onClick={() => {
+                            setDatePickerOpen(!datePickerOpen);
+                            setStartTimePickerOpen(false);
+                            setEndTimePickerOpen(false);
+                          }}
+                        >
+                          <span>{formattedMMDDDate || 'Select date'}</span>
+                          <CalendarBlank size={15} weight="regular" />
+                        </button>
+
+                        {datePickerOpen && (
+                          <DatePickerCalendar
+                            selectedDate={date}
+                            onSelect={(newDate) => {
+                              if (newDate) setDate(newDate);
+                            }}
+                            onClose={() => setDatePickerOpen(false)}
+                          />
+                        )}
+                      </div>
+
+                      <label
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: isPast ? 'default' : 'pointer',
+                          userSelect: 'none',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={allDay}
+                          disabled={isPast}
+                          onChange={(e) => setAllDay(e.target.checked)}
+                          style={{
+                            width: '15px',
+                            height: '15px',
+                            accentColor: '#16a34a',
+                            cursor: isPast ? 'default' : 'pointer',
+                          }}
+                        />
+                        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary, #4b5563)' }}>
+                          All day
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Mobile Row 2: Dedicated Time Row */}
+                  {!allDay && (
+                    <div
+                      className="gcal-portal-row gcal-mobile-only-row gcal-split-row-2"
+                      style={{ position: 'relative', zIndex: (startTimePickerOpen || endTimePickerOpen) ? 9999 : 18 }}
+                    >
+                      <div className="gcal-portal-icon-box">
+                        <Clock size={19} weight="regular" className="gcal-portal-icon" />
+                      </div>
+                      <div className="gcal-portal-row-content">
+                        <div
+                          className="gcal-chip-time-group"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            zIndex: startTimePickerOpen || endTimePickerOpen ? 99999 : 5,
+                          }}
+                        >
+                          {/* Start Time Chip */}
+                          <div
+                            className="gcal-picker-anchor"
+                            style={{ zIndex: startTimePickerOpen ? 99999 : 10 }}
+                          >
+                            <button
+                              type="button"
+                              className={`gcal-chip-btn time ${startTimePickerOpen ? 'active' : ''}`}
+                              onClick={() => {
+                                setStartTimePickerOpen(!startTimePickerOpen);
+                                setDatePickerOpen(false);
+                                setEndTimePickerOpen(false);
+                              }}
+                            >
+                              <span>{formattedStartTime}</span>
+                              <Clock size={15} weight="regular" />
+                            </button>
+
+                            {startTimePickerOpen && (
+                              <TimePickerPopover
+                                selectedTime={startTime}
+                                minTime={date === getTodayStr() ? getCurrentTimeStr() : date < getTodayStr() ? '23:59' : undefined}
+                                onSelect={(newTime) => {
+                                  setStartTime(newTime);
+                                  if (endTime <= newTime) {
+                                    const [h, m] = newTime.split(':').map(Number);
+                                    const nextH = Math.min(23, h + 1).toString().padStart(2, '0');
+                                    setEndTime(`${nextH}:${m.toString().padStart(2, '0')}`);
+                                  }
+                                }}
+                                onClose={() => setStartTimePickerOpen(false)}
+                              />
+                            )}
+                          </div>
+
+                          <span className="gcal-chip-sep">–</span>
+
+                          {/* End Time Chip */}
+                          <div
+                            className="gcal-picker-anchor"
+                            style={{ zIndex: endTimePickerOpen ? 99999 : 10 }}
+                          >
+                            <button
+                              type="button"
+                              className={`gcal-chip-btn time ${endTimePickerOpen ? 'active' : ''}`}
+                              onClick={() => {
+                                setEndTimePickerOpen(!endTimePickerOpen);
+                                setDatePickerOpen(false);
+                                setStartTimePickerOpen(false);
+                              }}
+                            >
+                              <span>{formattedEndTime}</span>
+                              <Clock size={15} weight="regular" />
+                            </button>
+
+                            {endTimePickerOpen && (
+                              <TimePickerPopover
+                                selectedTime={endTime}
+                                minTime={startTime}
+                                onSelect={(newTime) => setEndTime(newTime)}
+                                onClose={() => setEndTimePickerOpen(false)}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   )}
-                </div>
-              </div>
+                </>
+              )}
 
               {/* Guests Row */}
-              <div className="gcal-portal-row">
+              <div className="gcal-portal-row" style={{ position: 'relative', zIndex: 3 }}>
                 <div className="gcal-portal-icon-box">
                   <Users size={19} weight="regular" className="gcal-portal-icon" />
                 </div>
@@ -621,7 +810,7 @@ export function EventModal({
               </div>
 
               {/* Description Row */}
-              <div className="gcal-portal-row">
+              <div className="gcal-portal-row" style={{ position: 'relative', zIndex: 2 }}>
                 <div className="gcal-portal-icon-box">
                   <TextAlignLeft size={19} weight="regular" className="gcal-portal-icon" />
                 </div>
@@ -640,6 +829,32 @@ export function EventModal({
                     {!isPast && description.length > 0 && (
                       <span className="gcal-char-counter">
                         {description.length}/50
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Remarks Row (Notes / Links / Remarks) */}
+              <div className="gcal-portal-row" style={{ position: 'relative', zIndex: 1 }}>
+                <div className="gcal-portal-icon-box">
+                  <NotePencil size={19} weight="regular" className="gcal-portal-icon" />
+                </div>
+                <div className="gcal-portal-row-content">
+                  <div className="gcal-portal-desc-row">
+                    <input
+                      type="text"
+                      className="gcal-portal-inline-input"
+                      placeholder={isPast ? 'No remarks added' : 'Add remarks'}
+                      value={remarks}
+                      maxLength={50}
+                      readOnly={isPast}
+                      disabled={isPast}
+                      onChange={(e) => setRemarks(e.target.value)}
+                    />
+                    {!isPast && remarks.length > 0 && (
+                      <span className="gcal-char-counter">
+                        {remarks.length}/50
                       </span>
                     )}
                   </div>
@@ -688,55 +903,21 @@ export function EventModal({
       </div>
 
       {/* All-Day Event Conflict Warning Modal */}
-      {conflictWarningOpen && (
-        <div
-          className="portal-modal-backdrop"
-          onClick={() => setConflictWarningOpen(false)}
-          role="presentation"
-          style={{ zIndex: 10005 }}
-        >
-          <div
-            className="portal-modal-card discord-logout-modal"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="conflict-modal-title"
-          >
-            <div className="discord-modal-header">
-              <h2 id="conflict-modal-title" className="discord-modal-title">
-                Schedule Conflict
-              </h2>
-              <button
-                type="button"
-                className="discord-modal-close-btn"
-                onClick={() => setConflictWarningOpen(false)}
-                aria-label="Close modal"
-              >
-                <X size={18} weight="bold" />
-              </button>
-            </div>
-
-            <div className="discord-modal-body">
-              <p className="discord-modal-desc">
-                An all-day event {conflictEventTitle ? <strong>"{conflictEventTitle}"</strong> : ''} is already scheduled for this date. Only one all-day event can be active per day.
-              </p>
-            </div>
-
-            <div className="discord-modal-separator" />
-
-            <div className="discord-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                className="discord-modal-btn discord-modal-btn-save"
-                style={{ fontWeight: 500 }}
-                onClick={() => setConflictWarningOpen(false)}
-              >
-                Understood
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={conflictWarningOpen}
+        onClose={() => setConflictWarningOpen(false)}
+        title="Schedule Conflict"
+        description={
+          <p className="discord-modal-desc">
+            An all-day event {conflictEventTitle ? <strong>{conflictEventTitle}</strong> : ''} is already scheduled for this date. Only one all-day event can be active per day.
+          </p>
+        }
+        confirmText="Understood"
+        variant="primary"
+        showCancel={false}
+        onConfirm={() => setConflictWarningOpen(false)}
+        zIndex={10005}
+      />
     </>
   );
 }

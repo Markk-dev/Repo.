@@ -23,6 +23,7 @@ import {
 import { UserSettingsModal } from '@/components/settings/UserSettingsModal';
 import { PopoverMenu } from '@/components/ui/PopoverMenu';
 import { CalendarView } from '@/components/events/CalendarView';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 export default function DashboardPage() {
   const { employee, logout, isLoading, sessionOverridden, isVerified } = useAuth();
@@ -429,60 +430,16 @@ export default function DashboardPage() {
       />
 
       {/* 5. Logout Confirmation Warning Modal */}
-      {logoutModalOpen && (
-        <div
-          className="portal-modal-backdrop"
-          onClick={() => setLogoutModalOpen(false)}
-          role="presentation"
-        >
-          <div
-            className="portal-modal-card discord-logout-modal"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="logout-modal-title"
-          >
-            <div className="discord-modal-header">
-              <h2 id="logout-modal-title" className="discord-modal-title">
-                Log Out
-              </h2>
-              <button
-                className="discord-modal-close-btn"
-                onClick={() => setLogoutModalOpen(false)}
-                aria-label="Close modal"
-              >
-                <X size={18} weight="bold" />
-              </button>
-            </div>
-
-            <div className="discord-modal-body">
-              <p className="discord-modal-desc">
-                Are you sure you want to logout?
-              </p>
-            </div>
-
-            {/* Separator line between description and buttons */}
-            <div className="discord-modal-separator" />
-
-            <div className="discord-modal-footer">
-              <button
-                type="button"
-                className="discord-modal-btn discord-modal-btn-cancel"
-                onClick={() => setLogoutModalOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="discord-modal-btn discord-modal-btn-danger"
-                onClick={logout}
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={logoutModalOpen}
+        onClose={() => setLogoutModalOpen(false)}
+        title="Log Out"
+        description="Are you sure you want to logout?"
+        confirmText="Log Out"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={logout}
+      />
     </div>
   );
 }
