@@ -33,10 +33,15 @@ export async function GET() {
 
         // Enforce single-device active session rule
         if (!ActiveSessionStore.isActiveSession(empId, sessionKey)) {
-          return NextResponse.json(
+          const response = NextResponse.json(
             { authenticated: false, sessionOverridden: true, error: "You have been logged out because this account was logged into on another device." },
             { status: 401 }
           );
+          response.cookies.set(SESSION_COOKIE_NAME, "", {
+            ...SESSION_COOKIE_OPTIONS,
+            maxAge: 0,
+          });
+          return response;
         }
 
         const employee = EMPLOYEES.find((emp) => emp.employeeId === empId);
@@ -77,10 +82,22 @@ export async function GET() {
             session.status === "expired" ||
             !ActiveSessionStore.isActiveSession(session.emp_employee_id, sessionKey)
           ) {
-            return NextResponse.json(
-              { authenticated: false, sessionOverridden: true, error: "You have been logged out because this account was logged into on another device." },
+            const isOverridden = session.status !== "invalid" && session.status !== "expired";
+            const response = NextResponse.json(
+              {
+                authenticated: false,
+                sessionOverridden: isOverridden,
+                error: isOverridden
+                  ? "You have been logged out because this account was logged into on another device."
+                  : "Session invalid or expired.",
+              },
               { status: 401 }
             );
+            response.cookies.set(SESSION_COOKIE_NAME, "", {
+              ...SESSION_COOKIE_OPTIONS,
+              maxAge: 0,
+            });
+            return response;
           }
 
           const responseBody = {
@@ -112,10 +129,15 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       { authenticated: false, error: "Invalid session" },
       { status: 401 }
     );
+    response.cookies.set(SESSION_COOKIE_NAME, "", {
+      ...SESSION_COOKIE_OPTIONS,
+      maxAge: 0,
+    });
+    return response;
   } catch (err) {
     console.error("[Session] Unexpected error:", err);
     return NextResponse.json(

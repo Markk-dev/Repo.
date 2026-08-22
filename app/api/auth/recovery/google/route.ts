@@ -17,7 +17,41 @@ async function getAuthenticatedEmployeeId(): Promise<{ id: string; employeeId: s
 
   const supabase = createAdminClient(cookieStore);
 
-  // 1. Try Supabase user_sessions lookup
+  // 1. If local fallback session, resolve directly without querying user_sessions table
+  if (sessionKey.startsWith("local_")) {
+    try {
+      const parts = sessionKey.split("_");
+      const empCode = Buffer.from(parts[1], "base64").toString("utf-8");
+
+      const { data: empData } = await supabase
+        .from("employees")
+        .select("id, employee_id, name")
+        .eq("employee_id", empCode)
+        .maybeSingle();
+
+      if (empData) {
+        return {
+          id: empData.id,
+          employeeId: empData.employee_id,
+          name: empData.name,
+        };
+      }
+
+      const employee = EMPLOYEES.find((emp) => emp.employeeId.toLowerCase() === empCode.toLowerCase());
+      if (employee) {
+        return {
+          id: employee.employeeId,
+          employeeId: employee.employeeId,
+          name: employee.name,
+        };
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+
+  // 2. Try Supabase user_sessions lookup for DB session tokens
   try {
     const { data: sessionData } = await supabase
       .from("user_sessions")
@@ -35,42 +69,8 @@ async function getAuthenticatedEmployeeId(): Promise<{ id: string; employeeId: s
       };
     }
   } catch {
-    // Fall back to local session format
+    // ignore
   }
-
-  // 2. Fall back to local session parsing -> resolve UUID from database
-  if (sessionKey.startsWith("local_")) {
-    try {
-      const parts = sessionKey.split("_");
-      const empCode = Buffer.from(parts[1], "base64").toString("utf-8");
-      
-      const { data: empData } = await supabase
-        .from("employees")
-        .select("id, employee_id, name")
-        .eq("employee_id", empCode)
-        .maybeSingle();
-
-      if (empData) {
-        return {
-          id: empData.id,
-          employeeId: empData.employee_id,
-          name: empData.name,
-        };
-      }
-
-      const employee = EMPLOYEES.find((emp) => emp.employeeId === empCode);
-      if (employee) {
-        return {
-          id: employee.employeeId,
-          employeeId: employee.employeeId,
-          name: employee.name,
-        };
-      }
-    } catch {
-      // ignore
-    }
-  }
-
   return null;
 }
 

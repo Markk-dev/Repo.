@@ -7,6 +7,7 @@ import {
   TextAlignLeft,
   X,
   CalendarBlank,
+  Trash,
 } from '@phosphor-icons/react/dist/ssr';
 import { DatePickerCalendar } from '@/components/ui/DatePickerCalendar';
 import { TimePickerPopover } from '@/components/ui/TimePickerPopover';
@@ -101,6 +102,7 @@ interface EventModalProps {
   onDelete?: (eventId: string) => void;
   initialEvent?: Partial<CalendarEvent> | null;
   userName?: string;
+  existingEvents?: CalendarEvent[];
 }
 
 function formatFullDate(dateStr: string): string {
@@ -143,25 +145,43 @@ export function EventModal({
   isOpen,
   onClose,
   onSave,
+  onDelete,
   initialEvent,
+  existingEvents,
 }: EventModalProps) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('16:00');
   const [endTime, setEndTime] = useState('17:00');
+  const [allDay, setAllDay] = useState(false);
   const [guests, setGuests] = useState('');
   const [description, setDescription] = useState('');
   const [isTimeEditing, setIsTimeEditing] = useState(false);
+  const [conflictWarningOpen, setConflictWarningOpen] = useState(false);
+  const [conflictEventTitle, setConflictEventTitle] = useState('');
 
   // Drag-to-dismiss states for mobile drawer
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartYRef = useRef<number | null>(null);
 
+  const getTodayStr = () => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const getCurrentTimeStr = () => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
   // Check if viewing a past event
   const isPast = initialEvent?.date
-    ? initialEvent.date < '2026-08-21' ||
-      (initialEvent.date === '2026-08-21' && (initialEvent.endTime || '23:59') <= '15:20')
+    ? initialEvent.date < getTodayStr() ||
+      (initialEvent.date === getTodayStr() && (initialEvent.endTime || '23:59') <= getCurrentTimeStr())
     : false;
 
   // Popover controls
@@ -170,14 +190,19 @@ export function EventModal({
   const [endTimePickerOpen, setEndTimePickerOpen] = useState(false);
 
   useEffect(() => {
-    const todayStr = '2026-08-21';
+    const todayStr = getTodayStr();
     if (initialEvent) {
       const initialDate = initialEvent.date ? initialEvent.date : todayStr;
+      const initialGuests = Array.isArray(initialEvent.guests)
+        ? initialEvent.guests.filter(Boolean).join(', ')
+        : (initialEvent.guests || '');
+
       setTitle(initialEvent.title || '');
       setDate(initialDate);
       setStartTime(initialEvent.startTime || '16:00');
       setEndTime(initialEvent.endTime || '17:00');
-      setGuests(initialEvent.guests || '');
+      setAllDay(initialEvent.allDay || false);
+      setGuests(initialGuests);
       setDescription(initialEvent.description || '');
       setIsTimeEditing(false);
     } else {
@@ -185,6 +210,7 @@ export function EventModal({
       setDate(todayStr);
       setStartTime('16:00');
       setEndTime('17:00');
+      setAllDay(false);
       setGuests('');
       setDescription('');
       setIsTimeEditing(false);
@@ -296,20 +322,40 @@ export function EventModal({
       return; // Do NOT accept event with no title
     }
 
-    const todayStr = '2026-08-21';
+    const todayStr = getTodayStr();
     // Validate past event prevention
-    if (date < todayStr || (date === todayStr && startTime < '15:20')) {
+    if (date < todayStr || (date === todayStr && !allDay && startTime < getCurrentTimeStr())) {
       return;
     }
+
+    if (allDay && existingEvents) {
+      const existingAllDay = existingEvents.find(
+        (e) => e.date === date && e.allDay && e.id !== initialEvent?.id
+      );
+      if (existingAllDay) {
+        setConflictEventTitle(existingAllDay.title);
+        setConflictWarningOpen(true);
+        return;
+      }
+    }
+
+    // Cleanly format multiple guests separated by commas
+    const formattedGuests = guests
+      ? guests
+          .split(',')
+          .map((g) => g.trim())
+          .filter(Boolean)
+          .join(', ')
+      : '';
 
     const eventToSave: CalendarEvent = {
       id: initialEvent?.id || `evt-${Date.now()}`,
       title: title.trim(),
       date,
-      startTime,
-      endTime,
-      allDay: false,
-      guests: guests.trim(),
+      startTime: allDay ? '00:00' : startTime,
+      endTime: allDay ? '23:59' : endTime,
+      allDay,
+      guests: formattedGuests,
       description: description.trim(),
     };
     onSave(eventToSave);
@@ -324,269 +370,373 @@ export function EventModal({
   const isSaveDisabled = !title.trim() || isPast;
 
   return (
-    <div
-      className={`portal-modal-backdrop gcal-modal-backdrop-mobile ${isClosing ? 'backdrop-closing' : ''}`}
-      onClick={handleClose}
-      role="presentation"
-    >
+    <>
       <div
-        className={`portal-modal-card gcal-portal-modal-card gcal-drawer-card ${isClosing ? 'drawer-closing modal-closing' : ''}`}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="gcal-modal-title"
-        style={{
-          transform:
-            typeof window !== 'undefined' && window.innerWidth <= 640 && dragOffset > 0
-              ? `translateY(${dragOffset}px)`
-              : undefined,
-          transition: isDragging ? 'none' : 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
+        className={`portal-modal-backdrop gcal-modal-backdrop-mobile ${isClosing ? 'backdrop-closing' : ''}`}
+        onClick={handleClose}
+        role="presentation"
       >
-        {/* Mobile Draggable Handle Zone */}
         <div
-          className="gcal-drawer-handle-zone"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onMouseDown={handleMouseDown}
-          role="button"
-          tabIndex={0}
-          aria-label="Drag down to close"
+          className={`portal-modal-card gcal-portal-modal-card gcal-drawer-card ${isClosing ? 'drawer-closing modal-closing' : ''}`}
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="gcal-modal-title"
+          style={{
+            transform:
+              typeof window !== 'undefined' && window.innerWidth <= 640 && dragOffset > 0
+                ? `translateY(${dragOffset}px)`
+                : undefined,
+            transition: isDragging ? 'none' : 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
         >
-          <div className="gcal-drawer-handle-pill" />
-        </div>
-
-        {/* Header with medium weight title and clean close button only */}
-        <div className="discord-modal-header">
-          <h2
-            id="gcal-modal-title"
-            className="discord-modal-title"
-            style={{ fontWeight: 500, fontSize: '17px' }}
+          {/* Mobile Draggable Handle Zone */}
+          <div
+            className="gcal-drawer-handle-zone"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            role="button"
+            tabIndex={0}
+            aria-label="Drag down to close"
           >
-            {initialEvent?.id ? (isPast ? 'Event Details (Past)' : 'Edit Event') : 'Add Event'}
-          </h2>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button
-              type="button"
-              className="discord-modal-close-btn"
-              onClick={handleClose}
-              aria-label="Close"
-            >
-              <X size={18} weight="bold" />
-            </button>
+            <div className="gcal-drawer-handle-pill" />
           </div>
-        </div>
 
-        <form onSubmit={handleSubmit} className="gcal-portal-modal-form">
-          <div className="gcal-portal-modal-body">
-            {/* Title Input */}
-            <div className="gcal-portal-title-row">
-              <input
-                type="text"
-                id="gcal-event-title"
-                className="gcal-portal-title-input"
-                placeholder="Add title"
-                value={title}
-                readOnly={isPast}
-                disabled={isPast}
-                onChange={(e) => setTitle(e.target.value)}
-                autoFocus={!isPast}
-              />
+          {/* Header with medium weight title and clean close button only */}
+          <div className="discord-modal-header">
+            <h2
+              id="gcal-modal-title"
+              className="discord-modal-title"
+              style={{ fontWeight: 500, fontSize: '17px' }}
+            >
+              {initialEvent?.id ? (isPast ? 'Event Details (Past)' : 'Edit Event') : 'Add Event'}
+            </h2>
+
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="discord-modal-close-btn"
+                onClick={handleClose}
+                aria-label="Close"
+              >
+                <X size={18} weight="bold" />
+              </button>
             </div>
+          </div>
 
-            {/* Time / Date Section */}
-            <div className="gcal-portal-row">
-              <div className="gcal-portal-icon-box">
-                <Clock size={19} weight="regular" className="gcal-portal-icon" />
+          <form onSubmit={handleSubmit} className="gcal-portal-modal-form">
+            <div className="gcal-portal-modal-body">
+              {/* Title Input */}
+              <div className="gcal-portal-title-row">
+                <input
+                  type="text"
+                  id="gcal-event-title"
+                  className="gcal-portal-title-input"
+                  placeholder="Add title"
+                  value={title}
+                  maxLength={30}
+                  readOnly={isPast}
+                  disabled={isPast}
+                  onChange={(e) => setTitle(e.target.value)}
+                  autoFocus={!isPast}
+                />
+                {!isPast && title.length > 0 && (
+                  <span className="gcal-char-counter">
+                    {title.length}/30
+                  </span>
+                )}
               </div>
 
-              <div className="gcal-portal-row-content">
-                {!isTimeEditing || isPast ? (
-                  /* Collapsed view */
-                  <div
-                    className={`gcal-time-summary-box ${isPast ? 'disabled' : ''}`}
-                    onClick={isPast ? undefined : () => setIsTimeEditing(true)}
-                    role="button"
-                    tabIndex={isPast ? -1 : 0}
-                    onKeyDown={(e) => {
-                      if (!isPast && (e.key === 'Enter' || e.key === ' ')) {
-                        setIsTimeEditing(true);
-                      }
-                    }}
-                    title={isPast ? 'Past event cannot be rescheduled' : 'Click to edit time'}
-                  >
-                    <div className="gcal-time-summary-primary" style={{ fontWeight: 500 }}>
-                      <span>{formattedFullDate}</span>
-                      <span>
-                        {formattedStartTime} – {formattedEndTime}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  /* Expanded view */
-                  <div className="gcal-time-expanded-box">
-                    <div className="gcal-datetime-chips-row">
-                      {/* Date Chip Button */}
-                      <div className="gcal-picker-anchor">
-                        <button
-                          type="button"
-                          className="gcal-chip-btn"
-                          onClick={() => {
-                            setDatePickerOpen(!datePickerOpen);
-                            setStartTimePickerOpen(false);
-                            setEndTimePickerOpen(false);
-                          }}
-                        >
-                          <span>{formattedMMDDDate || 'Select date'}</span>
-                          <CalendarBlank size={15} weight="regular" />
-                        </button>
+              {/* Time / Date Section */}
+              <div className="gcal-portal-row">
+                <div className="gcal-portal-icon-box">
+                  <Clock size={19} weight="regular" className="gcal-portal-icon" />
+                </div>
 
-                        {datePickerOpen && (
-                          <DatePickerCalendar
-                            selectedDate={date}
-                            onSelect={(newDate) => {
-                              if (newDate) setDate(newDate);
-                            }}
-                            onClose={() => setDatePickerOpen(false)}
-                          />
-                        )}
+                <div className="gcal-portal-row-content">
+                  {!isTimeEditing || isPast ? (
+                    /* Collapsed view */
+                    <div
+                      className={`gcal-time-summary-box ${isPast ? 'disabled' : ''}`}
+                      onClick={isPast ? undefined : () => setIsTimeEditing(true)}
+                      role="button"
+                      tabIndex={isPast ? -1 : 0}
+                      onKeyDown={(e) => {
+                        if (!isPast && (e.key === 'Enter' || e.key === ' ')) {
+                          setIsTimeEditing(true);
+                        }
+                      }}
+                      title={isPast ? 'Past event cannot be rescheduled' : 'Click to edit time'}
+                    >
+                      <div className="gcal-time-summary-primary" style={{ fontWeight: 500 }}>
+                        <span>{formattedFullDate}</span>
+                        <span>
+                          {allDay ? 'All day' : `${formattedStartTime} – ${formattedEndTime}`}
+                        </span>
                       </div>
-
-                      {/* Start Time Chip */}
-                      <div className="gcal-chip-time-group">
+                    </div>
+                  ) : (
+                    /* Expanded view */
+                    <div className="gcal-time-expanded-box">
+                      <div className="gcal-datetime-chips-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                        {/* Date Chip Button */}
                         <div className="gcal-picker-anchor">
                           <button
                             type="button"
-                            className="gcal-chip-btn time"
+                            className="gcal-chip-btn"
                             onClick={() => {
-                              setStartTimePickerOpen(!startTimePickerOpen);
-                              setDatePickerOpen(false);
+                              setDatePickerOpen(!datePickerOpen);
+                              setStartTimePickerOpen(false);
                               setEndTimePickerOpen(false);
                             }}
                           >
-                            <span>{formattedStartTime}</span>
-                            <Clock size={15} weight="regular" />
+                            <span>{formattedMMDDDate || 'Select date'}</span>
+                            <CalendarBlank size={15} weight="regular" />
                           </button>
 
-                          {startTimePickerOpen && (
-                            <TimePickerPopover
-                              selectedTime={startTime}
-                              minTime={date === '2026-08-21' ? '15:30' : undefined}
-                              onSelect={(newTime) => {
-                                setStartTime(newTime);
-                                if (endTime <= newTime) {
-                                  const [h, m] = newTime.split(':').map(Number);
-                                  const nextH = Math.min(23, h + 1).toString().padStart(2, '0');
-                                  setEndTime(`${nextH}:${m.toString().padStart(2, '0')}`);
-                                }
+                          {datePickerOpen && (
+                            <DatePickerCalendar
+                              selectedDate={date}
+                              onSelect={(newDate) => {
+                                if (newDate) setDate(newDate);
                               }}
-                              onClose={() => setStartTimePickerOpen(false)}
+                              onClose={() => setDatePickerOpen(false)}
                             />
                           )}
                         </div>
 
-                        <span className="gcal-chip-sep">–</span>
+                        {!allDay && (
+                          <div className="gcal-chip-time-group" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            {/* Start Time Chip */}
+                            <div className="gcal-picker-anchor">
+                              <button
+                                type="button"
+                                className="gcal-chip-btn time"
+                                onClick={() => {
+                                  setStartTimePickerOpen(!startTimePickerOpen);
+                                  setDatePickerOpen(false);
+                                  setEndTimePickerOpen(false);
+                                }}
+                              >
+                                <span>{formattedStartTime}</span>
+                                <Clock size={15} weight="regular" />
+                              </button>
 
-                        {/* End Time Chip */}
-                        <div className="gcal-picker-anchor">
-                          <button
-                            type="button"
-                            className="gcal-chip-btn time"
-                            onClick={() => {
-                              setEndTimePickerOpen(!endTimePickerOpen);
-                              setDatePickerOpen(false);
-                              setStartTimePickerOpen(false);
+                              {startTimePickerOpen && (
+                                <TimePickerPopover
+                                  selectedTime={startTime}
+                                  minTime={date === getTodayStr() ? getCurrentTimeStr() : date < getTodayStr() ? '23:59' : undefined}
+                                  onSelect={(newTime) => {
+                                    setStartTime(newTime);
+                                    if (endTime <= newTime) {
+                                      const [h, m] = newTime.split(':').map(Number);
+                                      const nextH = Math.min(23, h + 1).toString().padStart(2, '0');
+                                      setEndTime(`${nextH}:${m.toString().padStart(2, '0')}`);
+                                    }
+                                  }}
+                                  onClose={() => setStartTimePickerOpen(false)}
+                                />
+                              )}
+                            </div>
+
+                            <span className="gcal-chip-sep">–</span>
+
+                            {/* End Time Chip */}
+                            <div className="gcal-picker-anchor">
+                              <button
+                                type="button"
+                                className="gcal-chip-btn time"
+                                onClick={() => {
+                                  setEndTimePickerOpen(!endTimePickerOpen);
+                                  setDatePickerOpen(false);
+                                  setStartTimePickerOpen(false);
+                                }}
+                              >
+                                <span>{formattedEndTime}</span>
+                                <Clock size={15} weight="regular" />
+                              </button>
+
+                              {endTimePickerOpen && (
+                                <TimePickerPopover
+                                  selectedTime={endTime}
+                                  minTime={startTime}
+                                  onSelect={(newTime) => setEndTime(newTime)}
+                                  onClose={() => setEndTimePickerOpen(false)}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <label
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: isPast ? 'default' : 'pointer',
+                            userSelect: 'none',
+                            marginLeft: 'auto',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={allDay}
+                            disabled={isPast}
+                            onChange={(e) => setAllDay(e.target.checked)}
+                            style={{
+                              width: '15px',
+                              height: '15px',
+                              accentColor: '#16a34a',
+                              cursor: isPast ? 'default' : 'pointer',
                             }}
-                          >
-                            <span>{formattedEndTime}</span>
-                            <Clock size={15} weight="regular" />
-                          </button>
-
-                          {endTimePickerOpen && (
-                            <TimePickerPopover
-                              selectedTime={endTime}
-                              minTime={startTime}
-                              onSelect={(newTime) => setEndTime(newTime)}
-                              onClose={() => setEndTimePickerOpen(false)}
-                            />
-                          )}
-                        </div>
+                          />
+                          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary, #4b5563)' }}>
+                            All day
+                          </span>
+                        </label>
                       </div>
                     </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Guests Row */}
+              <div className="gcal-portal-row">
+                <div className="gcal-portal-icon-box">
+                  <Users size={19} weight="regular" className="gcal-portal-icon" />
+                </div>
+                <div className="gcal-portal-row-content">
+                  <input
+                    type="text"
+                    className="gcal-portal-inline-input"
+                    placeholder={isPast ? 'No guests added' : 'Add guests'}
+                    value={guests}
+                    readOnly={isPast}
+                    disabled={isPast}
+                    onChange={(e) => setGuests(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Description Row */}
+              <div className="gcal-portal-row">
+                <div className="gcal-portal-icon-box">
+                  <TextAlignLeft size={19} weight="regular" className="gcal-portal-icon" />
+                </div>
+                <div className="gcal-portal-row-content">
+                  <div className="gcal-portal-desc-row">
+                    <input
+                      type="text"
+                      className="gcal-portal-inline-input"
+                      placeholder={isPast ? 'No description added' : 'Add description'}
+                      value={description}
+                      maxLength={50}
+                      readOnly={isPast}
+                      disabled={isPast}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                    {!isPast && description.length > 0 && (
+                      <span className="gcal-char-counter">
+                        {description.length}/50
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
-            {/* Guests Row */}
-            <div className="gcal-portal-row">
-              <div className="gcal-portal-icon-box">
-                <Users size={19} weight="regular" className="gcal-portal-icon" />
-              </div>
-              <div className="gcal-portal-row-content">
-                <input
-                  type="text"
-                  className="gcal-portal-inline-input"
-                  placeholder={isPast ? 'No guests added' : 'Add guests'}
-                  value={guests}
-                  readOnly={isPast}
-                  disabled={isPast}
-                  onChange={(e) => setGuests(e.target.value)}
-                />
-              </div>
-            </div>
+            {/* Modal Divider Separator */}
+            <div className="discord-modal-separator" />
 
-            {/* Description Row */}
-            <div className="gcal-portal-row items-start">
-              <div className="gcal-portal-icon-box" style={{ marginTop: '2px' }}>
-                <TextAlignLeft size={19} weight="regular" className="gcal-portal-icon" />
-              </div>
-              <div className="gcal-portal-row-content">
-                <textarea
-                  className="gcal-portal-inline-textarea"
-                  placeholder={isPast ? 'No description added' : 'Add description or attachment'}
-                  rows={2}
-                  value={description}
-                  readOnly={isPast}
-                  disabled={isPast}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Modal Divider Separator */}
-          <div className="discord-modal-separator" />
-
-          {/* Modal Footer with Cancel & Save */}
-          <div className="discord-modal-footer">
-            <button
-              type="button"
-              className="discord-modal-btn discord-modal-btn-cancel"
-              style={{ fontWeight: 500 }}
-              onClick={handleClose}
+            {/* Modal Footer with Cancel & Save */}
+            <div
+              className="discord-modal-footer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '8px',
+              }}
             >
-              {isPast ? 'Close' : 'Cancel'}
-            </button>
-            {!isPast && (
               <button
-                type="submit"
-                disabled={isSaveDisabled}
-                className="discord-modal-btn discord-modal-btn-save"
-                style={{
-                  fontWeight: 500,
-                  opacity: isSaveDisabled ? 0.5 : 1,
-                  cursor: isSaveDisabled ? 'not-allowed' : 'pointer',
-                }}
+                type="button"
+                className="discord-modal-btn discord-modal-btn-cancel"
+                style={{ fontWeight: 500 }}
+                onClick={handleClose}
               >
-                Save
+                {isPast ? 'Close' : 'Cancel'}
               </button>
-            )}
-          </div>
-        </form>
+              {!isPast && (
+                <button
+                  type="submit"
+                  disabled={isSaveDisabled}
+                  className="discord-modal-btn discord-modal-btn-save"
+                  style={{
+                    fontWeight: 500,
+                    opacity: isSaveDisabled ? 0.5 : 1,
+                    cursor: isSaveDisabled ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Save
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+
+      {/* All-Day Event Conflict Warning Modal */}
+      {conflictWarningOpen && (
+        <div
+          className="portal-modal-backdrop"
+          onClick={() => setConflictWarningOpen(false)}
+          role="presentation"
+          style={{ zIndex: 10005 }}
+        >
+          <div
+            className="portal-modal-card discord-logout-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="conflict-modal-title"
+          >
+            <div className="discord-modal-header">
+              <h2 id="conflict-modal-title" className="discord-modal-title">
+                Schedule Conflict
+              </h2>
+              <button
+                type="button"
+                className="discord-modal-close-btn"
+                onClick={() => setConflictWarningOpen(false)}
+                aria-label="Close modal"
+              >
+                <X size={18} weight="bold" />
+              </button>
+            </div>
+
+            <div className="discord-modal-body">
+              <p className="discord-modal-desc">
+                An all-day event {conflictEventTitle ? <strong>"{conflictEventTitle}"</strong> : ''} is already scheduled for this date. Only one all-day event can be active per day.
+              </p>
+            </div>
+
+            <div className="discord-modal-separator" />
+
+            <div className="discord-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="discord-modal-btn discord-modal-btn-save"
+                style={{ fontWeight: 500 }}
+                onClick={() => setConflictWarningOpen(false)}
+              >
+                Understood
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -1,6 +1,3 @@
-// Employee credentials for authentication
-// To add more employees, add entries to this array
-
 export interface Employee {
   employeeId: string;
   name: string;

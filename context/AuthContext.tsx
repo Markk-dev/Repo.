@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -38,15 +39,7 @@ interface AuthContextType {
   refreshVerification: () => Promise<void>;
 }
 
-// ============================================
-// Context
-// ============================================
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// ============================================
-// Provider
-// ============================================
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [employee, setEmployee] = useState<Employee | null>(null);
@@ -64,7 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsVerified(!!data.isVerified);
       }
     } catch {
-      // ignore
     }
   }, []);
 
@@ -75,22 +67,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsVerified(false);
     }
   }, [employee, refreshVerification]);
-
-  // Reset override modal if user is already on the login page
   useEffect(() => {
     if (pathname === '/login') {
       setSessionOverridden(false);
     }
   }, [pathname]);
 
-  // ─── Restore and live-monitor session ───
+  const isCheckingRef = useRef(false);
+
   useEffect(() => {
+    if (sessionOverridden) {
+      setIsLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     const checkSession = async () => {
+      if (isCheckingRef.current || sessionOverridden) return;
+      isCheckingRef.current = true;
+
       try {
         const res = await fetch('/api/auth/session', {
-          credentials: 'include', // Send cookies
+          credentials: 'include',
         });
 
         if (!cancelled) {
@@ -116,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             const data = await res.json().catch(() => ({}));
             if (data.sessionOverridden) {
+              setEmployee(null);
               setSessionOverridden(true);
             } else {
               setEmployee(null);
@@ -127,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setEmployee(null);
         }
       } finally {
+        isCheckingRef.current = false;
         if (!cancelled) {
           setIsLoading(false);
         }
@@ -134,15 +135,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkSession();
-
-    // Live heartbeat to detect new logins on other devices (runs every 15s while authenticated)
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible' && !sessionOverridden) {
         checkSession();
       }
     }, 15000);
 
-    // Re-verify session when user switches back to this tab/window
     const handleVisibilityOrFocus = () => {
       if (document.visibilityState === 'visible' && !sessionOverridden) {
         checkSession();
@@ -160,7 +158,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [pathname, sessionOverridden]);
 
-  // ─── Login ───
   const login = useCallback(
     async (
       employeeId: string,
@@ -196,7 +193,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // ─── Logout ───
   const logout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', {
@@ -204,7 +200,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include',
       });
     } catch {
-      // Even if the server call fails, clear client state
     }
 
     setSessionOverridden(false);
@@ -227,7 +222,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     >
       {children}
 
-      {/* Multi-Device Session Invalidation Modal Alert (only shown when not already on /login) */}
       {sessionOverridden && pathname !== '/login' && (
         <div className="portal-modal-backdrop" style={{ zIndex: 99999 }}>
           <div
@@ -280,10 +274,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-// ============================================
-// Hook
-// ============================================
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);

@@ -5,6 +5,11 @@ import { AuthProvider } from '@/context/AuthContext';
 export const metadata: Metadata = {
   title: 'Repo – Workforce & Authentication Portal',
   description: 'Secured workforce portal and authentication for Repo',
+  icons: {
+    icon: '/logo/Logo.png',
+    shortcut: '/logo/Logo.png',
+    apple: '/logo/Logo.png',
+  },
 };
 
 export const viewport: Viewport = {

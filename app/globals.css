@@ -1825,10 +1825,10 @@ textarea {
 
 .discord-modal-title {
   font-family: var(--font-header);
-  font-size: 1.18rem;
-  font-weight: 800;
+  font-size: 1.05rem;
+  font-weight: 600;
   color: var(--color-text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -1911,6 +1911,7 @@ textarea {
   background-color: #ffffff;
   border: 1px solid var(--color-border-default);
   color: var(--color-text-primary);
+  font-weight: 400 !important;
   box-shadow: none;
 }
 
@@ -3080,7 +3081,7 @@ textarea {
 .discord-devices-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 72px 64px 72px;
+  padding: 28px 36px 48px 36px;
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -3256,35 +3257,18 @@ textarea {
   gap: 12px;
 }
 
-.mfa-provider-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 16px 18px;
-  border-radius: var(--radius-sm);
-  background-color: #f7f5f1;
-  border: 1px solid var(--color-border-default);
-  transition: all 0.15s ease;
-  box-sizing: border-box;
-  width: 100%;
-}
-
-.mfa-provider-card:hover {
-  background-color: #fbf9f6;
-  border-color: #dfd6cc;
-}
-
 .mfa-provider-top-row {
   display: flex;
   align-items: center;
   gap: 14px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .mfa-provider-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   background-color: #ffffff;
   border: 1px solid var(--color-border-default);
   display: flex;
@@ -3320,6 +3304,9 @@ textarea {
   font-size: 12.5px;
   color: #716761;
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mfa-provider-status-badge {
@@ -3348,10 +3335,10 @@ textarea {
   background-color: #ede7df;
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
-  padding: 7px 16px;
+  padding: 6px 14px;
   font-family: var(--font-header);
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -3372,14 +3359,23 @@ textarea {
 }
 
 .mfa-connect-btn.connected-btn {
-  background-color: #ffffff;
-  color: #b91c1c;
-  border-color: #fecaca;
+  background-color: #dc2626;
+  color: #ffffff;
+  border: 1px solid #991b1b;
+  box-shadow: var(--shadow-btn-red);
+  font-weight: 700;
 }
 
 .mfa-connect-btn.connected-btn:hover {
-  background-color: #fef2f2;
-  border-color: #f87171;
+  background-color: #c52222;
+  border-color: #991b1b;
+  box-shadow: var(--shadow-btn-red-hover);
+  transform: translateY(-2px);
+}
+
+.mfa-connect-btn.connected-btn:active {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-btn-red-active);
 }
 
 .mfa-info-tip-box {
@@ -4628,20 +4624,6 @@ textarea {
     display: flex;
   }
 
-  .gcal-create-event-btn .gcal-btn-text {
-    display: none;
-  }
-
-  .gcal-create-event-btn {
-    display: inline-flex;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    justify-content: center;
-    align-items: center;
-    border-radius: var(--radius-sm);
-  }
-
   .gcal-today-btn {
     padding: 0 10px;
     font-size: 12px;
@@ -4691,6 +4673,22 @@ textarea {
     align-items: center;
     justify-content: center;
     text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .gcal-create-event-btn .gcal-btn-text {
+    display: none;
+  }
+
+  .gcal-create-event-btn {
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+    border-radius: var(--radius-sm);
   }
 }
 
@@ -4797,15 +4795,84 @@ textarea {
   background-color: rgba(11, 87, 208, 0.04);
 }
 
-/* Current Time Indicator Red Line */
+/* Custom Tooltips (Discord / App Aesthetic)
+   ========================================================================== */
+.custom-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.custom-tooltip-bubble {
+  position: absolute;
+  background: #111827;
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 999999 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+.custom-tooltip-wrapper:hover .custom-tooltip-bubble {
+  opacity: 1;
+  visibility: visible;
+}
+
+.custom-tooltip-bubble.pos-top {
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+}
+.custom-tooltip-wrapper:hover .custom-tooltip-bubble.pos-top {
+  transform: translateX(-50%) translateY(0);
+}
+
+.custom-tooltip-bubble.pos-bottom {
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+}
+.custom-tooltip-wrapper:hover .custom-tooltip-bubble.pos-bottom {
+  transform: translateX(-50%) translateY(0);
+}
+
+.custom-tooltip-arrow {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #111827;
+  transform: rotate(45deg);
+}
+
+.custom-tooltip-bubble.pos-top .custom-tooltip-arrow {
+  bottom: -3px;
+  left: 50%;
+  margin-left: -3px;
+}
+
+.custom-tooltip-bubble.pos-bottom .custom-tooltip-arrow {
+  top: -3px;
+  left: 50%;
+  margin-left: -3px;
+}
+
+/* Red Current Time Indicator */
 .gcal-current-time-indicator {
   position: absolute;
   left: 0;
   right: 0;
-  z-index: 15;
-  pointer-events: none;
   display: flex;
   align-items: center;
+  z-index: 20;
+  pointer-events: none;
 }
 
 .gcal-time-dot {
@@ -4824,20 +4891,39 @@ textarea {
 }
 
 /* Event Cards Placed Dynamically on Grid */
-.gcal-event-card {
+.gcal-event-tooltip-container {
   position: absolute;
-  left: 1px;
-  right: 1px;
-  width: calc(100% - 2px);
+  left: 0;
+  right: 0;
+  width: 100%;
   box-sizing: border-box;
-  border-radius: 6px;
+  display: block;
+  z-index: 10;
+}
+
+.gcal-event-tooltip-container:hover {
+  z-index: 60 !important;
+}
+
+.gcal-event-tooltip-wrap {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  position: relative !important;
+}
+
+.gcal-event-card {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  border-radius: 0 !important;
   border: 1px solid transparent;
   padding: 5px 8px;
   cursor: pointer;
-  z-index: 10;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+  overflow: visible !important;
+  box-shadow: none !important;
+  transition: filter 0.12s ease !important;
   line-height: 1.25;
   display: flex;
   flex-direction: column;
@@ -4845,9 +4931,9 @@ textarea {
 }
 
 .gcal-event-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  transform: translateY(-1px);
-  z-index: 25;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: brightness(0.94) !important;
 }
 
 .gcal-event-card-top-row {
@@ -4860,8 +4946,10 @@ textarea {
 
 .gcal-event-card-title {
   font-family: var(--font-header);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4871,11 +4959,11 @@ textarea {
 .gcal-event-card-delete-btn {
   opacity: 0;
   pointer-events: none;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 4px;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4883,6 +4971,7 @@ textarea {
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: opacity 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 
@@ -4949,28 +5038,84 @@ textarea {
    ========================================================================== */
 .gcal-portal-modal-card {
   width: 100%;
-  max-width: 480px;
+  max-width: 530px;
+  min-height: auto;
   background-color: #ffffff;
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
   box-shadow: 0 20px 48px -12px rgba(23, 20, 18, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);
-  overflow: visible;
+  overflow: visible !important;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   animation: modalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gcal-allday-bookmark-wrap {
+  margin-top: 3px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gcal-allday-bookmark-ribbon {
+  width: 12px;
+  height: 16px;
+  display: block;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.12));
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.gcal-allday-bookmark-ribbon:hover {
+  transform: translateY(-1px) scale(1.15);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18));
+}
+
+.gcal-hour-cell.is-past-cell {
+  cursor: not-allowed;
+  background-color: rgba(0, 0, 0, 0.015);
 }
 
 .gcal-portal-modal-form {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: visible !important;
 }
 
 .gcal-portal-modal-body {
-  padding: 16px 22px 22px 22px;
+  padding: 22px 28px 24px 28px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  flex: 1;
+  overflow: visible !important;
+}
+
+.gcal-portal-modal-card .discord-modal-header {
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+}
+
+.gcal-portal-modal-card .discord-modal-separator {
+  margin: 0;
+}
+
+.gcal-portal-modal-card .discord-modal-footer {
+  margin-top: auto;
+  padding: 14px 24px;
+  background: #FAF8F5;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
 }
 
 .gcal-portal-title-row {
+  position: relative;
+  display: flex;
+  align-items: center;
   margin-bottom: 2px;
 }
 
@@ -4978,14 +5123,48 @@ textarea {
   width: 100%;
   border: none;
   border-bottom: 2px solid var(--color-border-default);
-  padding: 6px 0;
+  padding: 4px 50px 4px 0;
   font-family: var(--font-header);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 500;
   color: var(--color-text-primary);
   outline: none;
   background: transparent;
   transition: border-color 0.15s ease;
+}
+
+.gcal-char-counter {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-tertiary, #9ca3af);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.gcal-portal-title-row .gcal-char-counter {
+  position: absolute;
+  right: 0;
+  bottom: 6px;
+}
+
+.gcal-portal-desc-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.gcal-portal-desc-row .gcal-portal-inline-input {
+  flex: 1;
+  padding-right: 48px;
+}
+
+.gcal-portal-desc-row .gcal-char-counter {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .gcal-portal-title-input:focus {
@@ -5085,6 +5264,7 @@ textarea {
 .gcal-picker-anchor {
   position: relative;
   display: inline-flex;
+  z-index: 100;
 }
 
 .gcal-chip-btn {
@@ -5104,8 +5284,7 @@ textarea {
 }
 
 .gcal-chip-btn:hover {
-  background-color: #ede7df;
-  border-color: #d8cfc3;
+  background-color: #eee9e0;
 }
 
 .gcal-chip-btn:focus,
@@ -5135,9 +5314,9 @@ textarea {
   background-color: #ffffff;
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.04);
   padding: 12px;
-  z-index: 1200;
+  z-index: 99999 !important;
   animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -5293,7 +5472,7 @@ textarea {
   border-radius: var(--radius-sm);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
   padding: 4px;
-  z-index: 1200;
+  z-index: 99999 !important;
   animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -5552,18 +5731,19 @@ textarea {
   }
 
   .discord-modal-title {
-    font-weight: 500 !important;
+    font-family: var(--font-geist) !important;
+    font-weight: 600 !important;
   }
 }
 
 .discord-modal-title,
 #gcal-modal-title,
 .gcal-portal-modal-card h2 {
-  font-family: var(--font-header, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif) !important;
-  font-weight: 500 !important;
-  font-size: 16px !important;
+  font-family: var(--font-geist) !important;
+  font-weight: 600 !important;
+  font-size: 1.05rem !important;
   color: var(--color-text-primary, #171412) !important;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 /* Bottom Sheet / Drawer for Event Modal (Mobile only <= 640px) */

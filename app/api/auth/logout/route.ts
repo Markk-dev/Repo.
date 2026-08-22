@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
   SESSION_COOKIE_NAME,
+  SESSION_COOKIE_OPTIONS,
 } from "@/utils/session-config";
 import { ActiveSessionStore } from "@/utils/session-store";
 
@@ -43,10 +44,7 @@ export async function POST() {
     // Clear the session cookie
     const response = NextResponse.json({ success: true });
     response.cookies.set(SESSION_COOKIE_NAME, "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
+      ...SESSION_COOKIE_OPTIONS,
       maxAge: 0, // Delete immediately
     });
 
