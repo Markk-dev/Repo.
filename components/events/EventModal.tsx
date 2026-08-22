@@ -862,9 +862,6 @@ export function EventModal({
               </div>
             </div>
 
-            {/* Modal Divider Separator */}
-            <div className="discord-modal-separator" />
-
             {/* Modal Footer with Cancel & Save */}
             <div
               className="discord-modal-footer"

@@ -76,7 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isCheckingRef = useRef(false);
 
   useEffect(() => {
-    if (sessionOverridden) {
+    // Do NOT start heartbeat on the login page or when session is already overridden
+    if (pathname === '/login' || sessionOverridden) {
       setIsLoading(false);
       return;
     }
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const checkSession = async () => {
-      if (isCheckingRef.current || sessionOverridden) return;
+      if (isCheckingRef.current || sessionOverridden || pathname === '/login') return;
       isCheckingRef.current = true;
 
       try {
@@ -115,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             const data = await res.json().catch(() => ({}));
             if (data.sessionOverridden) {
+              // Session was taken over by another device — stop heartbeat immediately
+              cancelled = true;
               setEmployee(null);
               setSessionOverridden(true);
             } else {
@@ -136,13 +139,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkSession();
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible' && !sessionOverridden) {
+      if (document.visibilityState === 'visible' && !sessionOverridden && pathname !== '/login') {
         checkSession();
       }
     }, 15000);
 
     const handleVisibilityOrFocus = () => {
-      if (document.visibilityState === 'visible' && !sessionOverridden) {
+      if (document.visibilityState === 'visible' && !sessionOverridden && pathname !== '/login') {
         checkSession();
       }
     };

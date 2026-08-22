@@ -5372,6 +5372,27 @@ textarea {
 .gcal-conflict-modal-card {
   background-color: #ffffff !important;
   background: #ffffff !important;
+  /* On desktop: auto height, centered dialog */
+  height: auto !important;
+  max-width: 520px !important;
+  width: 92% !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+/* On mobile: make it a proper bottom-sheet drawer without leftover whitespace */
+@media (max-width: 640px) {
+  .gcal-conflict-modal-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    height: auto !important;
+    max-height: 85vh !important;
+    min-height: unset !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
 }
 
 .gcal-conflict-modal-title,
@@ -5948,11 +5969,26 @@ textarea {
     animation: drawerSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
 
+  /* Conflict modal drawer: shrink-wrap to content, no fixed height */
+  .gcal-drawer-card.gcal-conflict-modal-card {
+    height: auto !important;
+    min-height: unset !important;
+    max-height: 85vh !important;
+  }
+
+  /* Event add/edit drawer: auto height, capped at 88vh, scrollable body */
+  .gcal-portal-modal-card.gcal-drawer-card {
+    height: auto !important;
+    min-height: 480px !important;
+    max-height: 88vh !important;
+  }
+
+
   .gcal-portal-modal-form {
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
     min-height: 0;
   }
 
@@ -5961,7 +5997,7 @@ textarea {
   }
 
   .gcal-portal-modal-body {
-    flex: 1;
+    flex: 0 0 auto;
     overflow-y: visible !important;
   }
 

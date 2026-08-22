@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   BookmarkSimple,
   Users,
@@ -49,6 +49,47 @@ export function ConflictEventsModal({
 }: ConflictEventsModalProps) {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [activeMenuEventId, setActiveMenuEventId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (dragStartY.current === null) return;
+    const delta = e.touches[0].clientY - dragStartY.current;
+    if (delta > 0) setDragOffset(delta);
+  };
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (dragOffset > 80) {
+      onClose();
+    } else {
+      setDragOffset(0);
+    }
+    dragStartY.current = null;
+  };
+  const handleMouseDown = (e: React.MouseEvent) => {
+    dragStartY.current = e.clientY;
+    setIsDragging(true);
+    const onMouseMove = (ev: MouseEvent) => {
+      if (dragStartY.current === null) return;
+      const delta = ev.clientY - dragStartY.current;
+      if (delta > 0) setDragOffset(delta);
+    };
+    const onMouseUp = () => {
+      setIsDragging(false);
+      if (dragOffset > 80) onClose();
+      else setDragOffset(0);
+      dragStartY.current = null;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
 
   // Close 3-dot popover when clicking anywhere else
   useEffect(() => {
@@ -80,16 +121,23 @@ export function ConflictEventsModal({
           role="dialog"
           aria-modal="true"
           style={{
-            maxWidth: '520px',
-            width: '92%',
             backgroundColor: '#ffffff',
             background: '#ffffff',
-            borderRadius: '12px',
-            overflow: 'hidden',
+            transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+            transition: isDragging ? 'none' : 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
           }}
         >
           {/* Mobile Draggable Handle Zone for Drawer */}
-          <div className="gcal-drawer-handle-zone">
+          <div
+            className="gcal-drawer-handle-zone"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            role="button"
+            tabIndex={0}
+            aria-label="Drag down to close"
+          >
             <div className="gcal-drawer-handle-pill" />
           </div>
 
@@ -137,7 +185,6 @@ export function ConflictEventsModal({
           <div
             className="gcal-conflict-events-list"
             style={{
-              maxHeight: '55vh',
               overflowY: 'auto',
               padding: '12px 24px 16px 24px',
               display: 'flex',
