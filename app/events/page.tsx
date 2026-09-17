@@ -648,6 +648,8 @@ export default function EventsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setSearchActive(true)}
               onBlur={() => setSearchActive(false)}
+              autoComplete="off"
+              spellCheck={false}
             />
           </div>
 

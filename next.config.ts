@@ -2,6 +2,8 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: [
+    '*.free.pinggy.net',
+    '*.pinggy.net',
     'repo.a.pinggy.link',
     '*.a.pinggy.link',
     '*.pinggy.link',

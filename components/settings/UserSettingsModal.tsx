@@ -778,7 +778,7 @@ export function UserSettingsModal({
           {/* Quick Search Field */}
           <div className="settings-search-box">
             <MagnifyingGlass size={14} weight="bold" />
-            <input type="text" placeholder="Search settings..." aria-label="Search settings" />
+            <input type="text" placeholder="Search settings..." aria-label="Search settings" autoComplete="off" spellCheck={false} />
           </div>
 
           {/* Navigation Tree */}
@@ -1233,6 +1233,7 @@ export function UserSettingsModal({
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Enter current password"
+                    autoComplete="current-password"
                     required
                     autoFocus
                   />
@@ -1260,6 +1261,7 @@ export function UserSettingsModal({
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 6 characters"
+                    autoComplete="new-password"
                     required
                   />
                   <button
@@ -1286,6 +1288,7 @@ export function UserSettingsModal({
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"
+                    autoComplete="new-password"
                     required
                   />
                   <button

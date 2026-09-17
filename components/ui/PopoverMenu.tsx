@@ -6,8 +6,11 @@ export interface PopoverMenuItem {
   id?: string;
   label: string;
   icon?: React.ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
   danger?: boolean;
+  divider?: boolean;
+  disabled?: boolean;
+  mobileDisabled?: boolean; // visually disabled + still fires onClick on small screens
 }
 
 export interface PopoverMenuProps {
@@ -76,21 +79,32 @@ export function PopoverMenu({
       role="menu"
     >
       {items && items.length > 0
-        ? items.map((item, idx) => (
-            <button
-              key={item.id || idx}
-              type="button"
-              className={`reusable-popover-item ${item.danger ? 'danger' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                item.onClick();
-              }}
-              role="menuitem"
-            >
-              {item.icon && <span className="reusable-popover-icon">{item.icon}</span>}
-              <span className="reusable-popover-label">{item.label}</span>
-            </button>
-          ))
+        ? items.map((item, idx) =>
+            item.divider ? (
+              <hr key={item.id || `divider-${idx}`} className="reusable-popover-divider" />
+            ) : (
+              <button
+                key={item.id || idx}
+                type="button"
+                className={`reusable-popover-item ${
+                  item.danger ? 'danger' : ''
+                } ${
+                  item.disabled || item.mobileDisabled ? 'disabled' : ''
+                }`}
+                disabled={item.disabled === true}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (item.disabled) return;
+                  item.onClick?.();
+                }}
+                role="menuitem"
+                aria-disabled={item.disabled || item.mobileDisabled || undefined}
+              >
+                {item.icon && <span className="reusable-popover-icon">{item.icon}</span>}
+                <span className="reusable-popover-label">{item.label}</span>
+              </button>
+            )
+          )
         : children}
     </div>
   );

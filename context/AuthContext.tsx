@@ -23,6 +23,7 @@ export interface Employee {
   position: string;
   program: string;
   nickname?: string;
+  role?: string;
 }
 
 interface AuthContextType {

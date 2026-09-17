@@ -55,6 +55,7 @@ export async function GET() {
               name: employee.name,
               position: employee.position,
               program: employee.program,
+              role: employee.position === 'Administrative Assistant' ? 'Admin' : 'Regular',
             },
           });
         }
@@ -108,6 +109,7 @@ export async function GET() {
               name: session.emp_name,
               position: session.emp_position,
               program: session.emp_program,
+              role: session.emp_position === 'Administrative Assistant' ? 'Admin' : 'Regular',
             },
           };
 

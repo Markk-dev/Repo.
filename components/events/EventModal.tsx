@@ -448,6 +448,8 @@ export function EventModal({
                   readOnly={isPast}
                   disabled={isPast}
                   onChange={(e) => setTitle(e.target.value)}
+                  autoComplete="off"
+                  spellCheck={false}
                   autoFocus={!isPast}
                 />
                 {!isPast && title.length > 0 && (
@@ -805,6 +807,8 @@ export function EventModal({
                     readOnly={isPast}
                     disabled={isPast}
                     onChange={(e) => setGuests(e.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
                   />
                 </div>
               </div>
@@ -825,6 +829,8 @@ export function EventModal({
                       readOnly={isPast}
                       disabled={isPast}
                       onChange={(e) => setDescription(e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
                     />
                     {!isPast && description.length > 0 && (
                       <span className="gcal-char-counter">
@@ -851,6 +857,8 @@ export function EventModal({
                       readOnly={isPast}
                       disabled={isPast}
                       onChange={(e) => setRemarks(e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
                     />
                     {!isPast && remarks.length > 0 && (
                       <span className="gcal-char-counter">

@@ -61,10 +61,10 @@ export default function LoginPage() {
         />
       </div>
 
-      {/* Brand Indicator at top left (St. Anne x Repo Collaboration) */}
+      {/* Brand Indicator at top left (St. Anne Logo only) */}
       <div className="login-top-bar">
         <div className="landing-brand">
-          {/* St. Anne Logo (White background removed via mix-blend-mode) */}
+          {/* St. Anne Logo */}
           <div className="collab-logo-box">
             <img
               src="/logo/Logo.png"
@@ -72,43 +72,6 @@ export default function LoginPage() {
               className="collab-logo-img"
             />
           </div>
-
-          {/* Stylized Collaboration Curved X Marker */}
-          <div className="collab-divider-x-svg">
-            <svg width="14" height="14" viewBox="20 20 60 60" fill="none">
-              <polygon points="25.5,25.5 39,25.5 76,74.5 62.5,74.5" fill="currentColor" />
-              <path
-                d="M65.5 25.5 C65.5 37 59.5 45.5 50 51.5 C40.5 57.5 32 64 24 74.5 L36 74.5 C43 65.5 50 60 58 54.5 C66 49 74.5 38 75.5 25.5 Z"
-                fill="currentColor"
-              />
-            </svg>
-          </div>
-
-          {/* Repo Logo Icon */}
-          <div className="brand-icon">
-            <svg width="30" height="30" viewBox="0 0 28 28" fill="none">
-              <rect width="28" height="28" rx="8" fill="#171412" />
-              <path
-                d="M8 9H16C18.2091 9 20 10.7909 20 13C20 15.2091 18.2091 17 16 17H8V9Z"
-                stroke="#00ba58"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M8 17V21M14 17L18.5 21"
-                stroke="#ffffff"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-
-          {/* Repo Brand Wordmark */}
-          <span className="brand-logo-text">
-            Repo<span>.</span>
-          </span>
         </div>
       </div>
 
